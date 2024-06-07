@@ -17,11 +17,11 @@ public:
     Grounder() = default;
     ~Grounder() = default;
 
-    void ground_over_objects(const std::vector<ObjectType*>& arg_types,
-                             const std::vector<Object*> &all_objs,
-                             std::vector<std::vector<Object*>> &obj_groundings,
-                             std::vector<Object*> &current_grounding,
-                             size_t pos = 0) {
+    void ground_over_objects(const std::vector<const ObjectType*>& arg_types,
+                             const std::vector<const Object*> &all_objs,
+                             std::vector<std::vector<const Object*>> &obj_groundings,
+                             std::vector<const Object*> &current_grounding,
+                             size_t pos = 0) const {
         /// Function to ground argument types over all object combinations, and save them in obj_groundings container
         // Assumption: arg_types.size()==current_grounding.size() from input
         // If the all objects have been assigned, save the current grounding
@@ -44,11 +44,11 @@ public:
 
     }
 
-    void ground_over_pointers(const std::vector<ObjectType*>& arg_types,
-                              const std::vector<variables::Pointer*>& all_ptrs,
-                              std::vector<std::vector<variables::Pointer*>> &ptr_groundings,
-                              std::vector<variables::Pointer*> &current_grounding,
-                              size_t pos = 0){
+    void ground_over_pointers(const std::vector<const ObjectType*>& arg_types,
+                              const std::vector<const variables::Pointer*>& all_ptrs,
+                              std::vector<std::vector<const variables::Pointer*>> &ptr_groundings,
+                              std::vector<const variables::Pointer*> &current_grounding,
+                              size_t pos = 0) const {
         /// Function to ground argument types over all pointer combinations, and save them in ptr_groundings container
         // Assumption: arg_types.size()==current_grounding.size() from input
         // If the all pointers have been assigned, save the current grounding
@@ -70,10 +70,10 @@ public:
         }
     }
 
-    void ground_flags(const std::vector<variables::Flag*>& flags,
+    void ground_flags(const std::vector<const variables::Flag*>& flags,
                       std::vector<std::vector<value_t>> &flag_groundings,
                       std::vector<value_t> &current_grounding,
-                      size_t pos=0){
+                      size_t pos=0) const {
         if(pos == flags.size()){
             flag_groundings.emplace_back(current_grounding);
             return;

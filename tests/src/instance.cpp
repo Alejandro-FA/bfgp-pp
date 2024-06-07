@@ -47,15 +47,15 @@ TEST(Instance, ArbitraryInstance){
 
     // State variables
     auto sv_at_robby_roomA = std::make_unique<variables::StateVariable>(
-            pred_at_rooby.get(), std::vector<Object*>({obj_ptrs[0]})); // at_robby(roomA)=1
+            pred_at_rooby.get(), std::vector<const Object*>({obj_ptrs[0]})); // at_robby(roomA)=1
     auto sv_at_b1_roomA = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[2],obj_ptrs[0]})); // at(b1,roomA)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[2],obj_ptrs[0]})); // at(b1,roomA)=1
     auto sv_at_b2_roomA = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[3],obj_ptrs[0]})); // at(b2,roomA)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[3],obj_ptrs[0]})); // at(b2,roomA)=1
     auto sv_free_left = std::make_unique<variables::StateVariable>(
-            pred_free.get(), std::vector<Object*>({obj_ptrs[4]}));  // free(left)=1
+            pred_free.get(), std::vector<const Object*>({obj_ptrs[4]}));  // free(left)=1
     auto sv_free_right = std::make_unique<variables::StateVariable>(
-            pred_free.get(), std::vector<Object*>({obj_ptrs[5]}));  // free(right)=1
+            pred_free.get(), std::vector<const Object*>({obj_ptrs[5]}));  // free(right)=1
 
     // Create initial state
     auto initial_state = std::make_unique<State>();
@@ -68,10 +68,10 @@ TEST(Instance, ArbitraryInstance){
 
     // Create goal condition
     auto c_at_b1_roomB = std::make_unique<expressions::conditions::Equals>(
-            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<Object*>({obj_ptrs[2], obj_ptrs[1]})),
+            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<const Object*>({obj_ptrs[2], obj_ptrs[1]})),
             std::make_unique<variables::ConstantValue>(value_t{1}));
     auto c_at_b2_roomB = std::make_unique<expressions::conditions::Equals>(
-            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<Object*>({obj_ptrs[3], obj_ptrs[1]})),
+            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<const Object*>({obj_ptrs[3], obj_ptrs[1]})),
             std::make_unique<variables::ConstantValue>(value_t{1}));
     instance->add_goal_condition(std::move(c_at_b1_roomB));
     instance->add_goal_condition(std::move(c_at_b2_roomB));
@@ -105,11 +105,11 @@ TEST(Instance, ArbitraryInstance){
     EXPECT_FALSE(goal_cond_1->eval_condition(initial_state.get()));
     auto goal_state = std::make_unique<State>();
     goal_state->add_fact(std::make_unique<variables::StateVariable>(
-            pred_at_rooby.get(), std::vector<Object*>({obj_ptrs[1]}))); // at-robby(roomB)=1
+            pred_at_rooby.get(), std::vector<const Object*>({obj_ptrs[1]}))); // at-robby(roomB)=1
     goal_state->add_fact(std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[2], obj_ptrs[1]}))); // at(b1,roomB)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[2], obj_ptrs[1]}))); // at(b1,roomB)=1
     goal_state->add_fact(std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[3], obj_ptrs[1]}))); // at(b2,roomB)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[3], obj_ptrs[1]}))); // at(b2,roomB)=1
     for(const auto& goal_cond : instance->get_goal_condition())
         EXPECT_TRUE(goal_cond->eval_condition(goal_state.get()));
 }

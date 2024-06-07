@@ -9,14 +9,15 @@
 
 class ObjectType{
 public:
-    explicit ObjectType(const std::string &name, ObjectType* supertype):
-        _type_name(name), _supertype(supertype){
-        if(_supertype) _supertype->add_subtype(this);
+    explicit ObjectType(std::string name, ObjectType* supertype):
+        _type_name(std::move(name)) {
+        if (supertype) supertype->add_subtype(this);
+        _supertype = supertype;
     }
 
     ~ObjectType() = default;
 
-    void add_subtype(ObjectType *subtype){
+    void add_subtype(const ObjectType *subtype){
         /// Add a subtype to the class
         _subtypes.emplace_back(subtype);
     }
@@ -25,12 +26,16 @@ public:
         return _type_name;
     }
 
-    [[nodiscard]] ObjectType* get_supertype() const{
+    [[nodiscard]] const ObjectType* get_supertype() const{
         return _supertype;
     }
 
-    [[nodiscard]] std::vector<ObjectType*> get_raw_subtypes() const{
-        return _subtypes;
+    [[nodiscard]] std::vector<const ObjectType*> get_raw_subtypes() const{
+        std::vector<const ObjectType*> subtypes;
+        for(const auto& st : _subtypes){
+            subtypes.emplace_back(st);
+        }
+        return subtypes;
     }
 
     [[nodiscard]] std::string get_definition() const{
@@ -38,10 +43,10 @@ public:
     }
 
     // ToDo: test this function
-    [[nodiscard]] std::vector<ObjectType*> get_ancestors() const{
+    [[nodiscard]] std::vector<const ObjectType*> get_ancestors() const{
         /// Get all ancestor of a type until reaching the root type
         auto super_type = this->_supertype;
-        std::vector<ObjectType*> type_ancestors;
+        std::vector<const ObjectType*> type_ancestors;
         while(super_type != nullptr){
             type_ancestors.emplace_back(super_type);
             super_type = super_type->get_supertype();
@@ -49,7 +54,7 @@ public:
         return type_ancestors;
     }
 
-    [[nodiscard]] bool is_subtype(ObjectType* t){
+    [[nodiscard]] bool is_subtype(const ObjectType* t) const{
         /// Check whether the current Type is a strict subtype of t
         auto super_name = t->get_name();
         auto current = this->_supertype;
@@ -75,9 +80,9 @@ public:
     }
 
 private:
-    std::string _type_name;
-    ObjectType* _supertype;
-    std::vector<ObjectType*> _subtypes;
+    const std::string _type_name;
+    const ObjectType* _supertype;
+    std::vector<const ObjectType*> _subtypes;
 
 };
 

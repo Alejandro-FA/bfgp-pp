@@ -15,13 +15,13 @@ namespace evaluation_functions {
 
         ~InverseLoopCounter() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Compute number of loops of a program to priorize programs with more loops
             value_t res = 0;
             auto instructions = p->get_instructions();
             for (const auto &ins: instructions) {
-                if (dynamic_cast<instructions::For*>(ins)) res--;
-                else if(dynamic_cast<instructions::Goto*>(ins)) res--; // ToDo: possibly with dest_line < current_line
+                if (dynamic_cast<const instructions::For*>(ins)) res--;
+                else if(dynamic_cast<const instructions::Goto*>(ins)) res--; // ToDo: possibly with dest_line < current_line
             }
             return res;
         }

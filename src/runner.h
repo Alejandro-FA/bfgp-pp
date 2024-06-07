@@ -13,7 +13,7 @@
 #include "program_translator.h"
 
 namespace runner{
-    void synthesis( std::unique_ptr<utils::ArgumentParser> arg_parser,
+    void synthesis( std::unique_ptr<const utils::ArgumentParser> arg_parser,
                     std::unique_ptr<GeneralizedPlanningProblem> gpp,
                     std::unique_ptr<StatsInfo> stats_info ){
         // Build the search engine as a Best-First Search bounded by program lines with
@@ -112,12 +112,12 @@ namespace runner{
         else stats_info->add_info_msg("INVALID GENERAL PLAN :(");
     }
 
-    void generate_cpp_code(GeneralizedPlanningProblem *gpp,
-                           Program* p,
+    void generate_cpp_code(const GeneralizedPlanningProblem *gpp,
+                           const Program* p,
                            const std::string &dest_folder,
                            const std::string &dest_file_name,
                            StatsInfo *stats_info,
-                           utils::ArgumentParser *arg_parser) {
+                           const utils::ArgumentParser *arg_parser) {
         /// Generate CPP code from a .prog file, a domain and a set of instances
         stats_info->add_timer("cpp_translator_starts");
         auto prog_translator = std::make_unique<ProgramTranslator>(gpp, p->get_instructions(), arg_parser);
@@ -145,7 +145,7 @@ namespace runner{
     }
 
     void execute_cpp_code(
-            GeneralizedPlanningProblem *gpp,
+            const GeneralizedPlanningProblem *gpp,
             const std::string &dest_folder,
             const std::string &dest_file_name,
             StatsInfo *stats_info){
@@ -190,7 +190,7 @@ namespace runner{
         stats_info->add_info_msg("Standard deviation time "+utils::print_time(accumulated_times_std_dev));
     }
 
-    void validation( std::unique_ptr<utils::ArgumentParser> arg_parser,
+    void validation( std::unique_ptr<const utils::ArgumentParser> arg_parser,
                      std::unique_ptr<GeneralizedPlanningProblem> gpp,
                      std::unique_ptr<StatsInfo> stats_info){
         auto dest_folder_file =

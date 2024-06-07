@@ -24,12 +24,12 @@ TEST(State, ArbitraryStateAndCopyAndUpdate) {
     // Create objects
     auto room_obj = std::make_unique<Object>("roomA", 0, t_room.get());
     auto ball_obj = std::make_unique<Object>("b1", 1, t_ball.get());
-    std::vector<Object*> grounding = {room_obj.get(), ball_obj.get()};
+    std::vector<const Object*> grounding = {room_obj.get(), ball_obj.get()};
 
 
     // Create facts
     auto sv_at = std::make_unique<variables::StateVariable>(pred_at.get(),grounding, value_t{1});
-    auto fact_handempty = std::make_unique<variables::StateVariable>(pred_handempty.get(), std::vector<Object*>(), value_t{1});
+    auto fact_handempty = std::make_unique<variables::StateVariable>(pred_handempty.get(), std::vector<const Object*>(), value_t{1});
 
     // Create state_1
     auto state_1 = std::make_unique<State>();
@@ -67,7 +67,7 @@ TEST(State, ArbitraryStateAndCopyAndUpdate) {
     // Test non-existing fact in a state_1 returns 0 (false)
     auto pred_holding = std::make_unique<Function>("holding", (id_type )2);
     pred_holding->add_parameter(std::make_unique<Object>("?b", 0, t_ball.get()));
-    auto pars_holding = std::vector<Object*>({ball_obj.get()});
+    auto pars_holding = std::vector<const Object*>({ball_obj.get()});
     auto fact_holding = std::make_unique<variables::StateVariable>(pred_holding.get(), pars_holding, value_t{0});
     ASSERT_EQ((value_t)0, state_1->get_value(fact_holding.get()));
 

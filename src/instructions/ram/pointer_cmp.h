@@ -11,9 +11,9 @@ namespace instructions {
     class PointerCmp : public PointerAction {
     public:
         PointerCmp(variables::Pointer* ptr1, variables::Pointer* ptr2) : PointerAction("cmp",{ptr1,ptr2}){}
-        ~PointerCmp() = default;
+        ~PointerCmp() override = default;
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             // It is always applicable
             return true;
         }
@@ -22,7 +22,7 @@ namespace instructions {
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) const {
             // There must be two pointers in the class, and they are not update but just the difference is returned
             ps->set_line(ps->get_line()+1);
             return _pointers[0]->get_value() - _pointers[1]->get_value();

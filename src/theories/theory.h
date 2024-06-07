@@ -10,7 +10,7 @@
 namespace theory {
     class Theory {
     public:
-        Theory(const std::string name = "theory") : _name(name) {};
+        explicit Theory(std::string name = "theory") : _name(std::move(name)) {};
         ~Theory() = default;
 
         virtual void set_initial_program(GeneralizedPlanningProblem *gpp, Program *p){
@@ -21,20 +21,20 @@ namespace theory {
         [[nodiscard]] virtual bool is_action_theory() const{return false;}
 
         [[nodiscard]] virtual bool check_syntax_constraints(
-                Program *p, size_t program_line, instructions::Instruction *new_ins) {return true;}
+                const Program *p, size_t program_line, const instructions::Instruction *new_ins) {return true;}
 
         [[nodiscard]] virtual bool check_semantic_constraints(
                 GeneralizedPlanningProblem *gpp, Program *p, size_t program_line, instructions::Instruction *new_ins) {
             return true;
         }
 
-        virtual void update(Program *p, instructions::Instruction* last_ins) {} // add search dependent constraints
+        virtual void update(const Program *p, const instructions::Instruction* last_ins) {} // add search dependent constraints
 
         [[nodiscard]] virtual std::string get_name() const{
             return _name;
         }
     protected:
-        std::string _name;
+        const std::string _name;
     };
 }
 

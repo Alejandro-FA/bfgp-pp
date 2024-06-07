@@ -10,14 +10,14 @@
 
 class Object{
 public:
-    explicit Object(const std::string &name = "", id_type id = -1, ObjectType *t = nullptr) : _name(name), _id(id), _t(t){}
+    explicit Object(std::string name = "", id_type id = -1, const ObjectType *t = nullptr) : _name(std::move(name)), _id(id), _t(t){}
 
-    explicit Object(Object* o) : _name(o->get_name()), _id(o->get_id()), _t(o->get_type()){}
+    explicit Object(const Object* o) : _name(o->get_name()), _id(o->get_id()), _t(o->get_type()){}
 
     ~Object() = default;
 
     // ToDo: test this function
-    std::unique_ptr<Object> copy(){
+    [[nodiscard]] std::unique_ptr<Object> copy() const{
         return std::make_unique<Object>(this);
     }
 
@@ -33,7 +33,7 @@ public:
         return _id;
     }
 
-    [[nodiscard]] ObjectType* get_type() const{
+    [[nodiscard]] const ObjectType* get_type() const{
         return _t;
     }
 
@@ -45,8 +45,8 @@ public:
 
 private:
     std::string _name;
-    id_type _id;
-    ObjectType *_t;
+    const id_type _id;
+    const ObjectType *_t;
 };
 
 #endif //__OBJECT_H__

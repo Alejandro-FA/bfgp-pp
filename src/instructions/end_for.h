@@ -16,7 +16,7 @@ namespace instructions{
 
         ~EndFor() override = default;
 
-        [[nodiscard]] variables::Pointer* get_pointer() const{
+        [[nodiscard]] const variables::Pointer* get_pointer() const{
             return _ptr;
         }
 
@@ -28,12 +28,12 @@ namespace instructions{
             return _mod;
         }
 
-        bool is_applicable(Instance *ins, ProgramState* ps ) const override{
+        bool is_applicable(const Instance *ins, const ProgramState* ps ) const override{
             /// An ENDFOR instruction is always applicable
             return true;
         }
 
-        value_t apply(Instance *ins, ProgramState* ps ) override{
+        value_t apply(const Instance *ins, ProgramState* ps ) override {
             /// Update pointer values that are indexing objects
             auto line = ps->get_line();
             auto ptr_val = _ptr->get_value();
@@ -60,9 +60,9 @@ namespace instructions{
         }
 
     private:
-        variables::Pointer *_ptr;
-        size_t _orig_line;
-        int _mod;
+        variables::Pointer* const _ptr;
+        const size_t _orig_line;
+        const int _mod;
     };
 }
 #endif //__INSTRUCTIONS_END_FOR_H__

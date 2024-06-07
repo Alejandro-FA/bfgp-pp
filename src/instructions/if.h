@@ -22,16 +22,16 @@ namespace instructions{
             /// Add a new condition to the GOTO
             _conds.emplace_back(std::move(cond));
         }*/
-        void add_cond(variables::Flag* flag, value_t expected_val){
-            _conds.emplace_back(std::make_pair(flag, expected_val));
+        void add_cond(const variables::Flag* flag, value_t expected_val){
+            _conds.emplace_back(flag, expected_val);
         }
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             /// An IF instruction is always applicable
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState* ps) override{
+        value_t apply(const Instance* ins, ProgramState* ps) override{
             //auto s = ps->get_state();
             auto line = ps->get_line();
             //bool eval = std::all_of(_conds.begin(), _conds.end(),
@@ -39,7 +39,7 @@ namespace instructions{
             //                                        return c->eval_condition(s); });
 
             // Flags are references of program state flags, hence we can directly access their value
-            bool eval = std::all_of(_conds.begin(), _conds.end(),
+            bool eval = std::all_of(_conds.cbegin(), _conds.cend(),
                                     [](const auto& c){ return c.first->get_value() == c.second; });
 
             if( eval ) ps->set_line(line + 1); // If all conditions are True, move to next line
@@ -47,7 +47,7 @@ namespace instructions{
             return value_t{0}; // always return 0
         }
 
-        [[nodiscard]] std::vector<std::pair<variables::Flag*,value_t>> get_conds() const{
+        [[nodiscard]] std::vector<std::pair<const variables::Flag*,value_t>> get_conds() const{
             return _conds;
         }
 
@@ -65,8 +65,8 @@ namespace instructions{
         }
 
     private:
-        size_t _dest_line;
-        std::vector<std::pair<variables::Flag*,value_t>> _conds;
+        const size_t _dest_line;
+        std::vector<std::pair<const variables::Flag*,value_t>> _conds;
     };
 }
 #endif //__INSTRUCTIONS_IF_H__

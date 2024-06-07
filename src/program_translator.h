@@ -36,9 +36,9 @@
 class ProgramTranslator{
 public:
     /// Translates a program to CPP code (ToDo: [enhancement] other languages)
-    explicit ProgramTranslator( GeneralizedPlanningProblem* gpp,
-                                const std::vector<instructions::Instruction*> &generalized_plan,
-                                utils::ArgumentParser* arg_parse) :
+    explicit ProgramTranslator( const GeneralizedPlanningProblem* gpp,
+                                const std::vector<const instructions::Instruction*> &generalized_plan,
+                                const utils::ArgumentParser* arg_parse) :
                                 _gpp(gpp), _generalized_plan(generalized_plan), _arg_parser(arg_parse), _offset("    "){
     }
 
@@ -100,7 +100,7 @@ public:
             std::ofstream ofs_goal(folder + "goal_" + std::to_string(ins_id+1) + ".txt");
             auto goal_cond = instance->get_goal_condition();
             for(const auto& c: goal_cond){
-                auto state_var = dynamic_cast<variables::StateVariable*>(c->get_lhs());
+                auto state_var = dynamic_cast<const variables::StateVariable*>(c->get_lhs());
                 assert(state_var);
                 ofs_goal << state_var->get_function()->get_name() << " {";
                 bool first_arg = true;
@@ -126,11 +126,11 @@ private:
         return "pred_" + to_underscore(pred_name);
     }
 
-    [[nodiscard]] static std::string get_action_cpp_name(Action* a) {
+    [[nodiscard]] static std::string get_action_cpp_name(const Action* a) {
         return to_underscore(a->get_name());
     }
 
-    [[nodiscard]] static std::string get_action_cpp_declared_args(Action* a) {
+    [[nodiscard]] static std::string get_action_cpp_declared_args(const Action* a) {
         std::string name = "(";
         bool first_arg = true;
         for(const auto& param : a->get_parameters() ){
@@ -150,15 +150,15 @@ private:
         return pred_name+"[{"+ to_underscore(args)+"}]";
     }
 
-    [[nodiscard]] std::string get_condition_cpp_name(expressions::conditions::Condition* c) const {
+    [[nodiscard]] std::string get_condition_cpp_name(const expressions::conditions::Condition* c) const {
         auto lhs = c->get_lhs();
         auto rhs = c->get_rhs();
         auto lhs_name = get_predicate_name_and_args(lhs->get_name());
         auto cond_name = c->get_operator_name();
         auto rhs_name = std::string("");
         /// RHS can be either a predicate or a constant
-        auto rhs_pred = dynamic_cast<variables::StateVariable*>(rhs);
-        auto rhs_constant = dynamic_cast<variables::ConstantValue*>(rhs);
+        auto rhs_pred = dynamic_cast<const variables::StateVariable*>(rhs);
+        auto rhs_constant = dynamic_cast<const variables::ConstantValue*>(rhs);
         if(rhs_pred) rhs_name = get_predicate_name_and_args(rhs->get_name());
         else if(rhs_constant) rhs_name = rhs->get_name();
         else{
@@ -172,7 +172,7 @@ private:
         return lhs_name + cond_name + rhs_name;
     }
 
-    [[nodiscard]] static vec_str_t get_effect_cpp_names(expressions::effects::Effect* eff) {
+    [[nodiscard]] static vec_str_t get_effect_cpp_names(const expressions::effects::Effect* eff) {
         /// Keep args as shared_ptr for better dynamic cast
         //auto lhs_name = to_underscore(eff->get_lhs()->get_name());
         //auto rhs_name = to_underscore(eff->get_rhs()->get_name());
@@ -180,8 +180,8 @@ private:
         auto lhs_name = get_predicate_name_and_args(eff->get_lhs()->get_name());
         /// RHS could be either a predicate or a constant
         auto rhs_name = std::string("");
-        auto rhs_sv = dynamic_cast<variables::StateVariable*>(eff->get_rhs());
-        auto rhs_constant = dynamic_cast<variables::ConstantValue*>(eff->get_rhs());
+        auto rhs_sv = dynamic_cast<const variables::StateVariable*>(eff->get_rhs());
+        auto rhs_constant = dynamic_cast<const variables::ConstantValue*>(eff->get_rhs());
         if(rhs_sv) rhs_name = get_predicate_name_and_args(eff->get_rhs()->get_name());
         else if(rhs_constant) rhs_name = eff->get_rhs()->get_name();
         else {
@@ -207,7 +207,7 @@ private:
         return aux_var;
     }
 
-    [[nodiscard]] static vec_str_t get_action_cpp_arg_names(Action* a) {
+    [[nodiscard]] static vec_str_t get_action_cpp_arg_names(const Action* a) {
         vec_str_t names;
         for(const auto &param : a->get_parameters()){
             names.emplace_back(to_underscore(param->get_name()));
@@ -406,17 +406,17 @@ private:
         return initial_procedure;
     }
 
-    std::string get_instruction_cpp_name(instructions::Instruction* ins,
+    std::string get_instruction_cpp_name(const instructions::Instruction* ins,
                                          std::string &tmp_offset,
                                          vec_str_t &last_variables,
                                          std::stack<int> &end_ifs) const{
-        auto pa_ins = dynamic_cast<instructions::PlanningAction*>(ins);
-        auto for_ins = dynamic_cast<instructions::For*>(ins);
-        auto endfor_ins = dynamic_cast<instructions::EndFor*>(ins);
-        auto if_ins = dynamic_cast<instructions::If*>(ins);
-        auto end_ins = dynamic_cast<instructions::End*>(ins);
-        auto ptr_ins = dynamic_cast<instructions::PointerAction*>(ins);
-        auto reg_ins = dynamic_cast<instructions::RegisterAction*>(ins);
+        auto pa_ins = dynamic_cast<const instructions::PlanningAction*>(ins);
+        auto for_ins = dynamic_cast<const instructions::For*>(ins);
+        auto endfor_ins = dynamic_cast<const instructions::EndFor*>(ins);
+        auto if_ins = dynamic_cast<const instructions::If*>(ins);
+        auto end_ins = dynamic_cast<const instructions::End*>(ins);
+        auto ptr_ins = dynamic_cast<const instructions::PointerAction*>(ins);
+        auto reg_ins = dynamic_cast<const instructions::RegisterAction*>(ins);
         if(pa_ins) {
             return tmp_offset + to_underscore(pa_ins->get_action()->get_signature(false)) +";";
         }
@@ -460,18 +460,18 @@ private:
                 return "";
             }
             else if(act_name == "cmp"){
-                auto reg_cmp = dynamic_cast<instructions::RegisterCmp*>(ins);
+                auto reg_cmp = dynamic_cast<const instructions::RegisterCmp*>(ins);
                 auto rhs_fact = get_predicate_name_and_args(reg_cmp->get_right_fact_name(false), 0u);
                 last_variables = {lhs_fact, rhs_fact};
                 return "";
             }
             else if(act_name == "assign"){
-                auto reg_assign = dynamic_cast<instructions::RegisterAssign*>(ins);
+                auto reg_assign = dynamic_cast<const instructions::RegisterAssign*>(ins);
                 auto rhs_fact = get_predicate_name_and_args(reg_assign->get_right_fact_name(false), 0u);
                 return tmp_offset + lhs_fact + " = " + rhs_fact + ";";
             }
             else if(act_name == "set"){
-                auto reg_set = dynamic_cast<instructions::RegisterSet*>(ins);
+                auto reg_set = dynamic_cast<const instructions::RegisterSet*>(ins);
                 auto val = reg_set->get_value();
                 return tmp_offset + lhs_fact + " = " + std::to_string(val) + ";";
             }
@@ -621,10 +621,10 @@ private:
                "}\n";
     }
 
-    GeneralizedPlanningProblem* _gpp;
-    std::vector<instructions::Instruction*> _generalized_plan;
-    utils::ArgumentParser* _arg_parser;
-    std::string _offset;
+    const GeneralizedPlanningProblem* _gpp;
+    const std::vector<const instructions::Instruction*> _generalized_plan;
+    const utils::ArgumentParser* _arg_parser;
+    const std::string _offset;
 };
 
 #endif //__PROGRAM_TRANSLATOR_H__

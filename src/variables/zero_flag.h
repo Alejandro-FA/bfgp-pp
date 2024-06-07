@@ -11,16 +11,16 @@ namespace variables {
     class ZeroFlag : public Flag {
     public:
         ZeroFlag() : Flag("zf") {}
-        ZeroFlag(ZeroFlag *zf) : Flag(zf->get_name()) {}
+        explicit ZeroFlag(const ZeroFlag *zf) : Flag(zf->get_name()) {}
 
         ~ZeroFlag() override = default;
 
         // ToDo: test this method
-        [[nodiscard]] std::unique_ptr<Variable> copy_var() override{
+        [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
             return std::make_unique<ZeroFlag>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<ZeroFlag> copy(){
+        [[nodiscard]] std::unique_ptr<ZeroFlag> copy() const{
             return std::make_unique<ZeroFlag>(this);
         }
 

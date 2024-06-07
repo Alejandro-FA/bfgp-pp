@@ -15,12 +15,12 @@ namespace instructions{
 
         ~End() override = default;
 
-        [[nodiscard]] bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             /// Class method to return whether program state ps is in a goal condition of instance ins
             auto state = ps->get_state();
             auto goal = ins->get_goal_condition();
-            return std::all_of(goal.begin(), goal.end(),
-                               [state](expressions::conditions::Condition *c){
+            return std::all_of(goal.cbegin(), goal.cend(),
+                               [state](const expressions::conditions::Condition *c){
                                    return c->eval_condition(state);
                                });
         }

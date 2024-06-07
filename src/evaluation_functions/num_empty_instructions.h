@@ -13,7 +13,7 @@ namespace evaluation_functions {
 
         ~NumEmptyInstructions() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Return the number of repeated instructions
             value_t n_empty_ins = 0;
             for(const auto &ins : p->get_instructions()){

@@ -15,22 +15,22 @@ namespace expressions::conditions {
                           std::unique_ptr<variables::Variable> rhs = nullptr) :
                 Condition("-", std::move(lhs), std::move(rhs))  {}
 
-        explicit Subtract(Subtract *prec) :
+        explicit Subtract(const Subtract *prec) :
                 Condition(prec->get_operator_name(),
-                          std::move(prec->get_lhs()->copy_var()),
-                          std::move(prec->get_rhs()->copy_var())){}
+                          prec->get_lhs()->copy_var(),
+                          prec->get_rhs()->copy_var()){}
 
         ~Subtract() override = default;
 
-        [[nodiscard]] std::unique_ptr<Expression> copy_expression() override{
+        [[nodiscard]] std::unique_ptr<Expression> copy_expression() const override{
             return std::make_unique<Subtract>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<Condition> copy_condition() override{
+        [[nodiscard]] std::unique_ptr<Condition> copy_condition() const override{
             return std::make_unique<Subtract>(this);
         }
 
-        [[nodiscard]] bool eval_condition(State *s) const override {
+        [[nodiscard]] bool eval_condition(const State *s) const override {
             auto l_val = get_value(_lhs.get(), s);
             auto r_val = get_value(_rhs.get(), s);
             return l_val >= r_val;

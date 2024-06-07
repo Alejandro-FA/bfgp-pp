@@ -22,7 +22,7 @@ TEST(StateVariable, ArbitraryStateVariablenAndCopy) {
     // Create objects
     auto room_obj = std::make_unique<Object>("roomA", 0, t_room.get());
     auto ball_obj = std::make_unique<Object>("b1", 1, t_ball.get());
-    std::vector<Object*> grounding = {room_obj.get(), ball_obj.get()};
+    std::vector<const Object*> grounding = {room_obj.get(), ball_obj.get()};
 
     // Create a state var
     auto state_var = std::make_unique<variables::StateVariable>(function.get(),grounding, (value_t)1);

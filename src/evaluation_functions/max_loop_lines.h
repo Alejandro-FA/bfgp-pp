@@ -15,17 +15,17 @@ namespace evaluation_functions {
 
         ~MaxLoopLines() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Maximize number of lines covered by program loops
             auto instructions = p->get_instructions();
             std::vector<bool> covered(instructions.size(), false);
             for (size_t i = 0; i < instructions.size(); i++) {
                 // CPP: count the size of the for loop
-                auto f = dynamic_cast<instructions::For*>(instructions[i]);
+                auto f = dynamic_cast<const instructions::For*>(instructions[i]);
                 if(f)
                     for (size_t j = i; j <= f->get_destination_line(); j++) covered[j] = true;
                 // Assembler: count only on backward gotos
-                auto g = dynamic_cast<instructions::Goto*>(instructions[i]);
+                auto g = dynamic_cast<const instructions::Goto*>(instructions[i]);
                 if(g and g->get_destination_line()<i)
                     for(size_t j=g->get_destination_line(); j<=i; j++) covered[j]=true;
             }

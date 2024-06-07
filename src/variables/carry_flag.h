@@ -11,16 +11,16 @@ namespace variables {
     class CarryFlag : public Flag {
     public:
         CarryFlag() : Flag("cf") {}
-        CarryFlag(CarryFlag *cf) : Flag(cf->get_name()) {}
+        explicit CarryFlag(const CarryFlag *cf) : Flag(cf->get_name()) {}
 
         ~CarryFlag() override = default;
 
         // ToDo: test this method
-        [[nodiscard]] std::unique_ptr<Variable> copy_var() override{
+        [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
             return std::make_unique<CarryFlag>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<CarryFlag> copy(){
+        [[nodiscard]] std::unique_ptr<CarryFlag> copy() const{
             return std::make_unique<CarryFlag>(this);
         }
 

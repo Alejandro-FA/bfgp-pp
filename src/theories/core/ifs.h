@@ -21,8 +21,9 @@ namespace theory::core{
 
         ~Ifs() = default;
 
-        static void make_ifs(Grounder *gr, GeneralizedDomain *gd){
-            auto all_flags = gd->get_flags();
+        static void make_ifs(const Grounder *gr, GeneralizedDomain *gd){
+            const GeneralizedDomain *gd_const = gd;
+            auto all_flags = gd_const->get_flags();
             std::vector<std::vector<value_t>> all_groundings;
             std::vector<value_t> current_grounding(all_flags.size());
             gr->ground_flags(all_flags, all_groundings, current_grounding);  // ground all flags combinations

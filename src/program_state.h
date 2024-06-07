@@ -9,9 +9,10 @@
 class ProgramState{
     /// It is an extension of a State, with Pointers, Flags and Program Line
 public:
-	ProgramState(std::unique_ptr<State> s) :  _line(0), _state(std::move(s)){}
+	explicit ProgramState(std::unique_ptr<State> s) :  _line(0), _state(std::move(s)){}
 
-    ProgramState(ProgramState *ps){
+    /// TODO: We need to implement a copy constructor that performs a deep copy of the state for thread safety
+    explicit ProgramState(ProgramState *ps){
         _line = ps->get_line();
         _pointers = ps->get_pointers();
         _flags = ps->get_flags();
@@ -21,7 +22,8 @@ public:
     /// Owns _state
 	~ProgramState() = default;
 
-    std::unique_ptr<ProgramState> copy(){
+    /// TODO: We need to implement a copy constructor that performs a deep copy of the state for thread safety
+    [[nodiscard]] std::unique_ptr<ProgramState> copy() {
         return std::make_unique<ProgramState>(this);
     }
 
@@ -47,7 +49,12 @@ public:
      //////////////
     /// Getters ///
     //////////////
-	[[nodiscard]] State* get_state() const{
+     [[nodiscard]] State* get_state() {
+         return _state.get();
+     }
+
+    // Const overload
+	[[nodiscard]] const State* get_state() const{
 		return _state.get();
 	}
 	
@@ -55,7 +62,7 @@ public:
 		return _line;
 	}
 
-    [[nodiscard]] variables::Pointer* get_pointer(const std::string& name) const{
+    [[nodiscard]] const variables::Pointer* get_pointer(const std::string& name) const{
         for(const auto& ptr : _pointers){
             if(ptr->get_name() == name)
                 return ptr;
@@ -63,12 +70,22 @@ public:
         return nullptr;
     }
 
-    [[nodiscard]] std::vector<variables::Pointer*> get_pointers() const{
-        return _pointers;
+    [[nodiscard]] std::vector<variables::Pointer*> get_pointers() {
+        return {_pointers.begin(), _pointers.end()};
     }
 
-    [[nodiscard]] std::vector<variables::Flag*> get_flags() const{
-        return _flags;
+    // Const overload
+    [[nodiscard]] std::vector<const variables::Pointer*> get_pointers() const{
+        return {_pointers.cbegin(), _pointers.cend()};
+    }
+
+    [[nodiscard]] std::vector<variables::Flag*> get_flags() {
+        return {_flags.begin(), _flags.end()};
+    }
+
+    // Const overload
+    [[nodiscard]] std::vector<const variables::Flag*> get_flags() const{
+        return {_flags.cbegin(), _flags.cend()};
     }
 
     [[nodiscard]] std::string to_string() const{

@@ -12,13 +12,13 @@ enum class ActionType{Math, Memory};
 class Action{
 public:
     /// Base constructor of an action name and type
-	explicit Action(const std::string &name = "", const ActionType& act_type = ActionType::Math) :
-        _name(name), _action_type(act_type){}
+	explicit Action(std::string name = "", const ActionType& act_type = ActionType::Math) :
+        _name(std::move(name)), _action_type(act_type){}
 
     /// Constructor to copy action data from another action
-    explicit Action(Action *a): Action(a->get_name(), a->get_type()){
+    explicit Action(const Action *a): Action(a->get_name(), a->get_type()){
         // Copy params
-        std::vector<Object*> params;
+        std::vector<const Object*> params;
         for(const auto& par : a->get_parameters()) {
             auto par_copy = par->copy();
             params.emplace_back(par_copy.get());
@@ -38,9 +38,9 @@ public:
         }
     }
 
-    explicit Action(Action *a, const std::vector<Object*> &objects) : Action(a->get_name(), a->get_type()){
+    explicit Action(const Action *a, const std::vector<const Object*> &objects) : Action(a->get_name(), a->get_type()){
         // Build new arguments
-        std::vector<Object*> new_params;
+        std::vector<const Object*> new_params;
         for(const auto& obj : objects) {
             auto new_obj = obj->copy();
             new_params.emplace_back(new_obj.get());
@@ -61,13 +61,13 @@ public:
     }
 
     /// Constructor to copy an action and substitute parameters with the given pointers
-    explicit Action(Action *a, const std::vector<variables::Variable*> &pointers):
+    explicit Action(const Action *a, const std::vector<const variables::Variable*> &pointers):
         Action(a->get_name(),a->get_type()){
         // Set new pointer params
         _pointer_parameters.clear();
         _pointer_parameters.reserve(pointers.size());
         for(auto& var_ptr : pointers) {
-            auto ptr = dynamic_cast<variables::Pointer*>(var_ptr);
+            auto ptr = dynamic_cast<const variables::Pointer*>(var_ptr);
             assert(ptr != nullptr);
             _pointer_parameters.emplace_back(ptr);
         }
@@ -88,23 +88,23 @@ public:
     /// Owns _preconditions and _effects
 	virtual ~Action() = default;
 
-    [[nodiscard]] std::unique_ptr<Action> copy(){
+    [[nodiscard]] std::unique_ptr<Action> copy() const{
         return std::make_unique<Action>(this);
     }
 
-    [[nodiscard]] std::unique_ptr<Action> copy_with_substitution(const std::vector<Object*> &objects){
+    [[nodiscard]] std::unique_ptr<Action> copy_with_substitution(const std::vector<const Object*> &objects) const{
         /// Copy this action and substitute the parameters with the given objects
         /// (assuming they are correct in number and order)
         return std::make_unique<Action>(this, objects);
     }
 
-    [[nodiscard]] std::unique_ptr<Action> copy_with_substitution(const std::vector<variables::Variable*> &pointers){
+    [[nodiscard]] std::unique_ptr<Action> copy_with_substitution(const std::vector<const variables::Variable*> &pointers) const{
         /// Copy this action and substitute the parameters with the given pointers
         /// (assuming they are correct in number and order)
         return std::make_unique<Action>(this, pointers);
     }
 	
-	[[nodiscard]] virtual bool is_applicable(State *s) const{
+	[[nodiscard]] virtual bool is_applicable(const State *s) const{
 		for(const auto & precondition : _preconditions){
 			if( not precondition->eval_condition(s) ) {
                 return false;
@@ -132,15 +132,15 @@ public:
 		return num_effects[int(num_effects.size())-1];
 	}
 
-    virtual void add_pointer(variables::Pointer* ptr){
+    virtual void add_pointer(const variables::Pointer* ptr){
         _pointer_parameters.emplace_back(ptr);
     }
 
-    virtual void add_parameter(std::unique_ptr<Object> param){
+    virtual void add_parameter(std::unique_ptr<const Object> param){
         _parameters.emplace_back(std::move(param));
     }
 	
-	virtual void add_condition(std::unique_ptr<expressions::conditions::Condition> cond ){
+	virtual void add_condition(std::unique_ptr<const expressions::conditions::Condition> cond ){
         // ToDo: check that each condition argument matches one of the action argument types
 		_preconditions.emplace_back( std::move(cond) );
 	}
@@ -159,12 +159,12 @@ public:
         if(not _pointer_parameters.empty()){
             // Action grounded over pointer parameters
             for (const auto &ptr_param: _pointer_parameters)
-                name += (ptr_param == *_pointer_parameters.begin() ? "" : ",") + ptr_param->get_name() +
+                name += (ptr_param == *_pointer_parameters.cbegin() ? "" : ",") + ptr_param->get_name() +
                         (full_info?":" +ptr_param->get_type()->to_string(false):"");
         }
         else {
             for (const auto &param: _parameters)
-                name += (param == *_parameters.begin() ? "" : ",") + param->get_name() +
+                name += (param == *_parameters.cbegin() ? "" : ",") + param->get_name() +
                         (full_info?":" +param->get_type()->to_string(false):"");
         }
         name += ")";
@@ -179,13 +179,13 @@ public:
         return (id_type)_parameters.size();
     }
 
-    [[nodiscard]] virtual Object* get_parameter(size_t idx) const{
+    [[nodiscard]] virtual const Object* get_parameter(size_t idx) const{
         assert(idx < _parameters.size());
         return _parameters[idx].get();
     }
 
     // ToDo: to test (inefficient)
-    [[nodiscard]] virtual Object* get_parameter(const std::string& name) const{
+    [[nodiscard]] virtual const Object* get_parameter(const std::string& name) const{
         for(const auto& p : _parameters)
             if(p->get_name() == name)
                 return p.get();
@@ -193,8 +193,8 @@ public:
     }
 
     // ToDo: inefficient, often used only to get their names
-    [[nodiscard]] virtual std::vector<Object*> get_parameters() const{
-        std::vector<Object*> parameters;
+    [[nodiscard]] virtual std::vector<const Object*> get_parameters() const{
+        std::vector<const Object*> parameters;
         for(const auto& pars : _parameters){
             parameters.emplace_back(pars.get());
         }
@@ -206,8 +206,8 @@ public:
     }
 
     // ToDo: inefficient, often used only to get their names
-	[[nodiscard]] virtual std::vector<expressions::conditions::Condition*> get_preconditions() const{
-        std::vector<expressions::conditions::Condition*> v_conds;
+	[[nodiscard]] virtual std::vector<const expressions::conditions::Condition*> get_preconditions() const{
+        std::vector<const expressions::conditions::Condition*> v_conds;
         for( const auto& prec : _preconditions){
             v_conds.emplace_back(prec.get());
         }
@@ -215,8 +215,8 @@ public:
 	}
 
     // ToDo: inefficient, often used only to get their names
-	[[nodiscard]] virtual std::vector<expressions::effects::Effect*> get_effects() const{
-        std::vector<expressions::effects::Effect*> v_effs;
+	[[nodiscard]] virtual std::vector<const expressions::effects::Effect*> get_effects() const{
+        std::vector<const expressions::effects::Effect*> v_effs;
         for( const auto& eff : _effects){
             v_effs.emplace_back(eff.get());
         }
@@ -250,11 +250,11 @@ public:
     }
 	
 protected:
-    std::string _name;
-    ActionType _action_type;
-    std::vector<variables::Pointer*> _pointer_parameters;
-    std::vector<std::unique_ptr<Object>> _parameters;
-    std::vector< std::unique_ptr<expressions::conditions::Condition> > _preconditions;
+    const std::string _name;
+    const ActionType _action_type;
+    std::vector<const variables::Pointer*> _pointer_parameters;
+    std::vector<std::unique_ptr<const Object>> _parameters;
+    std::vector< std::unique_ptr<const expressions::conditions::Condition> > _preconditions;
     std::vector< std::unique_ptr<expressions::effects::Effect> > _effects;
 };
 

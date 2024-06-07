@@ -25,7 +25,7 @@ public:
         _all_info += info_msg;
     }
 
-    std::string get_all_info() const{
+    [[nodiscard]] std::string get_all_info() const{
         return _all_info;
     }
 
@@ -38,7 +38,7 @@ public:
         _all_info += out_line;
     }
 
-    double get_seconds( const std::string &start_timer_name = "", const std::string &end_timer_name = ""){
+    [[nodiscard]] double get_seconds( const std::string &start_timer_name = "", const std::string &end_timer_name = "") const{
         auto start_it = _timers.find(start_timer_name);
         auto end_it = _timers.find(end_timer_name);
         assert(start_it != _timers.end() and end_it != _timers.end());

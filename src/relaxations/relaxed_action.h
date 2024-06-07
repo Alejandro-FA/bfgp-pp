@@ -13,11 +13,9 @@ namespace relaxation{
         /// A Relaxed Action is an Action grounded with the objects of the instance
         /// that checks its applicability and applies effects to a Relaxed State
     public:
-        explicit RelaxedAction( Action *act ){
+        explicit RelaxedAction(const Action *act) : _name(act->get_name()), _action_type(act->get_type()) {
             /// 0. Copy the name, action type and parameters (they must be objects)
-            _name = act->get_name();
-            _action_type = act->get_type();
-            std::vector<Object*> new_params;
+            std::vector<const Object*> new_params;
             for(const auto& o : act->get_parameters()){
                 auto obj = o->copy();
                 new_params.emplace_back(obj.get());
@@ -25,9 +23,9 @@ namespace relaxation{
             }
             /// 1. Build precondition facts from grounded action act
             for(const auto& prec : act->get_preconditions()){
-                auto sv = dynamic_cast<variables::StateVariable*>(prec->get_lhs());
+                auto sv = dynamic_cast<const variables::StateVariable*>(prec->get_lhs());
                 assert(sv != nullptr);
-                auto cv = dynamic_cast<variables::ConstantValue*>(prec->get_rhs());
+                auto cv = dynamic_cast<const variables::ConstantValue*>(prec->get_rhs());
                 assert(cv != nullptr);
                 auto fact = std::make_unique<variables::StateVariable>(sv);
                 fact->set_value(cv->get_value());
@@ -37,9 +35,9 @@ namespace relaxation{
 
             /// 2. Build effect facts from grounded action act
             for(const auto& eff : act->get_effects()){
-                auto sv = dynamic_cast<variables::StateVariable*>(eff->get_lhs());
+                auto sv = dynamic_cast<const variables::StateVariable*>(eff->get_lhs());
                 assert(sv != nullptr);
-                auto cv = dynamic_cast<variables::ConstantValue*>(eff->get_rhs());
+                auto cv = dynamic_cast<const variables::ConstantValue*>(eff->get_rhs());
                 assert(cv != nullptr);
                 auto fact = std::make_unique<variables::StateVariable>(sv);
                 fact->set_value(cv->get_value());
@@ -60,24 +58,24 @@ namespace relaxation{
             return _applied;
         }
 
-        [[nodiscard]] std::vector<variables::StateVariable*> get_prec_facts() const{
+        [[nodiscard]] std::vector<const variables::StateVariable*> get_prec_facts() const{
             // FIXME (Issue #47): inefficient method
-            std::vector<variables::StateVariable*> prec_facts;
+            std::vector<const variables::StateVariable*> prec_facts;
             for(const auto& prec : _preconditions)
                 prec_facts.emplace_back(prec.get());
             return prec_facts;
         }
 
-        [[nodiscard]] std::vector<variables::StateVariable*> get_effect_facts() const{
+        [[nodiscard]] std::vector<const variables::StateVariable*> get_effect_facts() const{
             // FIXME (Issue #47): inefficient method
-            std::vector<variables::StateVariable*> eff_facts;
+            std::vector<const variables::StateVariable*> eff_facts;
             for(const auto& eff : _effects)
                 eff_facts.emplace_back(eff.get());
             return eff_facts;
         }
 
 
-        bool is_applicable(RelaxedState *s) const{
+        bool is_applicable(const RelaxedState *s) const{
             /// Return the applicability of a relaxed action over a relaxed state
             for(const auto& cond: _preconditions){
                 if(not s->has_fact(cond.get())) return false;
@@ -128,11 +126,11 @@ namespace relaxation{
         }
 
     private:
-        std::string _name;
-        ActionType _action_type;
-        std::vector<std::unique_ptr<Object>> _parameters;
-        std::vector<std::unique_ptr<variables::StateVariable>> _preconditions;
-        std::vector<std::unique_ptr<variables::StateVariable>> _effects;
+        const std::string _name;
+        const ActionType _action_type;
+        std::vector<std::unique_ptr<const Object>> _parameters;
+        std::vector<std::unique_ptr<const variables::StateVariable>> _preconditions;
+        std::vector<std::unique_ptr<const variables::StateVariable>> _effects;
         bool _applied;
 
     };

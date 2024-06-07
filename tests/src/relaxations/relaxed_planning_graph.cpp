@@ -52,7 +52,7 @@ TEST(RelaxedActionTests, RelaxedAction) {
     auto act_pick = raw_dom->get_action("pick(?b:ball,?r:room,?g:gripper)");
     std::vector<std::string> arg_names_1({"b1","roomA","left"});
     std::vector<std::string> arg_names_2({"b2","roomA","right"});
-    std::vector<Object*> args_1, args_2;
+    std::vector<const Object*> args_1, args_2;
     for(const auto& arg : arg_names_1) args_1.emplace_back(raw_ins->get_object(arg));
     for(const auto& arg : arg_names_2) args_2.emplace_back(raw_ins->get_object(arg));
     auto gr_act_pick_b1 = act_pick->copy_with_substitution(args_1);

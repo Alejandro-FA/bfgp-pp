@@ -36,10 +36,10 @@ TEST(RelaxedActionTests, RelaxedAction){
     auto all_objs = gpp->get_instance(0)->get_raw_objects();
     for(const auto& a : gpp->get_generalized_domain()->get_domain()->get_actions()){
         /// Compute action "a" grounding over the instance objects
-        std::vector<ObjectType*> arg_types;
+        std::vector<const ObjectType*> arg_types;
         for(const auto& o : a->get_parameters()) arg_types.emplace_back(o->get_type());
-        std::vector<std::vector<Object*>> groundings;
-        std::vector<Object*> current_grounding(arg_types.size());
+        std::vector<std::vector<const Object*>> groundings;
+        std::vector<const Object*> current_grounding(arg_types.size());
         grounder->ground_over_objects(arg_types, all_objs, groundings, current_grounding);
 
         for(const auto& gr : groundings){

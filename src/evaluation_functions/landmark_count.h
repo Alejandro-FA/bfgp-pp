@@ -15,7 +15,7 @@ namespace evaluation_functions{
         ~LandmarkCount() override = default;
 
         // Computing the landmark counting semi-heuristic during program execution.
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             //return p->get_landmark_count();  // ToDo: landmarks to be implemented
             return value_t{0};
         }

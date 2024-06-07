@@ -15,7 +15,7 @@ namespace evaluation_functions {
 
         ~ClosedWorldEuclideanDistance() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Computing squared distance to goal after each execution.
             /// This is closed-world assumption and that goals are equalities
             //auto vps = p->run( gpp );
@@ -29,7 +29,7 @@ namespace evaluation_functions {
             //    if(gpp->is_progressive() and (not gpp->is_instance_active(i))) continue;
             //    auto ins = gpp->get_instance(i);
             id_type active_instances_local_idx = 0;
-            for(const auto& idx : gpp->get_active_instance_idxs()){
+            for(const auto& idx : gpp->get_instance_idxs(true)){
                 auto ins = gpp->get_instance(idx);
                 auto s = vps[active_instances_local_idx++]->get_state();
                 auto goal_state = ins->get_goal_state();

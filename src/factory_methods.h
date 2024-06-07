@@ -51,7 +51,7 @@ namespace factories {
         return std::make_unique<StatsInfo>();
     }
 
-    std::unique_ptr<Domain> make_domain(utils::ArgumentParser* arg_parser) {
+    std::unique_ptr<Domain> make_domain(const utils::ArgumentParser* arg_parser) {
         auto problem_folder = arg_parser->get_problem_folder();
 
         // Check if problem folder contains the required domain.txt
@@ -65,7 +65,7 @@ namespace factories {
         return dom;
     }
 
-    std::unique_ptr<theory::Theory> make_theory(utils::ArgumentParser* arg_parser){
+    std::unique_ptr<theory::Theory> make_theory(const utils::ArgumentParser* arg_parser){
         auto theory_name = arg_parser->get_theory_name();
         if (theory_name == "assembler") return std::make_unique<theory::Assembler>();
         else if (theory_name == "cpp")  return std::make_unique<theory::CPlusPlus>();
@@ -79,8 +79,8 @@ namespace factories {
         return nullptr;
     }
 
-    std::unique_ptr<GeneralizedDomain> make_generalized_domain( utils::ArgumentParser* arg_parser,
-                                                           std::unique_ptr<Domain> domain) {
+    std::unique_ptr<GeneralizedDomain> make_generalized_domain(const utils::ArgumentParser* arg_parser,
+                                                           std::unique_ptr<const Domain> domain) {
         // Build the Generalize Domain with the corresponding theory (ToDo: update when considering multiple theories)
         auto gd = std::make_unique<GeneralizedDomain>(std::move(domain));
         /// 1. Set program lines
@@ -132,7 +132,7 @@ namespace factories {
     }
 
     std::unique_ptr<GeneralizedPlanningProblem> make_generalized_planning_problem(
-            utils::ArgumentParser* arg_parser,
+            const utils::ArgumentParser* arg_parser,
             std::unique_ptr<GeneralizedDomain> generalized_domain) {
 
         // Generating the GP problem
@@ -150,7 +150,6 @@ namespace factories {
         for (id_type i = 1; true; i++) {
             auto input_instance = problem_folder + std::to_string(i) + ".txt";
             if (!std::filesystem::exists(input_instance)) break;
-
             auto ins = std::make_unique<Instance>("default", i, dom);
             parser::Parser::parse_instance(ins.get(), input_instance, arg_parser);
             // If some critical error occurs, it is thrown during the parsing
@@ -164,11 +163,11 @@ namespace factories {
         return gpp;
     }
 
-    std::unique_ptr<search::Engine> make_engine(utils::ArgumentParser* arg_parser,
+    std::unique_ptr<search::Engine> make_engine(const utils::ArgumentParser* arg_parser,
                                                 std::unique_ptr<GeneralizedPlanningProblem> gpp) {
         // Build the search engine as a Best-First Search bounded by program lines with
         // the corresponding generalized domain and problem
-        auto engine = std::make_unique<search::BFS>(std::move(gpp));
+        auto engine = std::make_unique<search::BFS>(std::move(gpp)); // TODO: MAKE_UNIQUE PARALLEL_BFS
         //if(arg_parser->get_theory_name() == "bitvec") engine->set_bitvec_theory(true); // ToDo: add it as an argument option?
 
         // Set verbosity
@@ -227,7 +226,7 @@ namespace factories {
         return std::make_tuple(0, "OK");
     }
 
-    std::vector<std::unique_ptr<Program>> make_programs( utils::ArgumentParser* arg_parser, GeneralizedPlanningProblem *gpp){
+    std::vector<std::unique_ptr<Program>> make_programs( const utils::ArgumentParser* arg_parser, GeneralizedPlanningProblem *gpp){
         auto prog_ins = utils::read_program_instructions(arg_parser->get_program_file_name());
         auto prog_lines = int(prog_ins.size());
         auto prog = std::make_unique<Program>(gpp);
@@ -243,14 +242,14 @@ namespace factories {
         for( int j = 0; j+1 < prog_lines; j++ ){
             if(prog_ins[j] == "empty") continue; // skip empty instructions
             auto ins = gd->get_instruction(prog_ins[j]);
-            if(dynamic_cast<instructions::EndFor*>(ins)) continue; // skip EndFor instructions
+            if(dynamic_cast<const instructions::EndFor*>(ins)) continue; // skip EndFor instructions
             const auto& [error_code, error_msg] =
                     check_program_constraints(gpp, ins, prog_ins[j], prog.get(), j, theory.get());
             if(error_code < 0) // ERROR
                 utils::system_error(error_msg, error_code);
             prog->set_instruction(j, ins);
             // After a FOR instruction, also program an EndFor instruction which must also be in the input program
-            auto for_ins = dynamic_cast<instructions::For*>(ins);
+            auto for_ins = dynamic_cast<const instructions::For*>(ins);
             if(for_ins){
                 auto dest_line = for_ins->get_destination_line();
                 auto dest_ins = gd->get_instruction(prog_ins[dest_line]);

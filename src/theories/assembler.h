@@ -46,14 +46,14 @@ namespace theory {
             auto terminal = std::make_unique<core::Terminal>(gd);
         }
 
-        [[nodiscard]] bool check_syntax_constraints(Program *p, size_t program_line, instructions::Instruction *new_ins) override{
+        [[nodiscard]] bool check_syntax_constraints(const Program *p, size_t program_line, const instructions::Instruction *new_ins) override{
             // 1. Check that in last line, only END can be programmed
-            auto ins_end = dynamic_cast<instructions::End*>(new_ins);
+            auto ins_end = dynamic_cast<const instructions::End*>(new_ins);
             if(ins_end == nullptr and program_line+1 == p->get_num_instructions()) return false;
 
             // 2. Check that GOTO instructions can only be programmed after math instruction, and they
             // cannot jump to the same line or the next one, and no previous GOTO can directly jump to it
-            auto ins_goto = dynamic_cast<instructions::Goto*>(new_ins);
+            auto ins_goto = dynamic_cast<const instructions::Goto*>(new_ins);
             auto prev_ins = (program_line>0?p->get_instruction(program_line-1): nullptr);
             if(ins_goto){
                 if(program_line == 0) return false;
@@ -62,7 +62,7 @@ namespace theory {
                 if(dest_line == program_line or dest_line == program_line+1) return false;
                 for(size_t line=0; line < p->get_num_instructions(); ++line ){
                     if(line == program_line ) continue;
-                    auto prev_goto = dynamic_cast<instructions::Goto*>(p->get_instruction(line));
+                    auto prev_goto = dynamic_cast<const instructions::Goto*>(p->get_instruction(line));
                     if(not prev_goto) continue;
                     auto prev_dest_line = prev_goto->get_destination_line();
                     // don't let goto instructions jump to new one
@@ -92,27 +92,27 @@ namespace theory {
                 return false;
 
             // 4. Check that only PlanningActions, GOTOs or ENDs can be programmed in line [n-2]
-            auto ins_pa = dynamic_cast<instructions::PlanningAction*>(new_ins);
+            auto ins_pa = dynamic_cast<const instructions::PlanningAction*>(new_ins);
             if(program_line+2 == p->get_num_instructions() and (not (ins_pa or ins_goto or ins_end))) return false;
 
             // 5. Issue #57, trivial syntactic constraints among consecutive RAM instructions
             //if(false && program_line > 0) {
             if(program_line > 0) {
                 // Get all relevant previous interpretations
-                auto prev_ins_clear = dynamic_cast<instructions::PointerClear*>(p->get_instruction(program_line-1));
-                auto prev_ins_set = dynamic_cast<instructions::PointerSet*>(p->get_instruction(program_line-1));
-                auto prev_ins_inc = dynamic_cast<instructions::PointerInc*>(p->get_instruction(program_line-1));
-                auto prev_ins_dec = dynamic_cast<instructions::PointerDec*>(p->get_instruction(program_line-1));
+                auto prev_ins_clear = dynamic_cast<const instructions::PointerClear*>(p->get_instruction(program_line-1));
+                auto prev_ins_set = dynamic_cast<const instructions::PointerSet*>(p->get_instruction(program_line-1));
+                auto prev_ins_inc = dynamic_cast<const instructions::PointerInc*>(p->get_instruction(program_line-1));
+                auto prev_ins_dec = dynamic_cast<const instructions::PointerDec*>(p->get_instruction(program_line-1));
 
                 // Get all relevant current interpretations
-                auto ins_clear = dynamic_cast<instructions::PointerClear*>(new_ins);
-                auto ins_set = dynamic_cast<instructions::PointerSet*>(new_ins);
-                auto ins_inc = dynamic_cast<instructions::PointerInc*>(new_ins);
-                auto ins_dec = dynamic_cast<instructions::PointerDec*>(new_ins);
+                auto ins_clear = dynamic_cast<const instructions::PointerClear*>(new_ins);
+                auto ins_set = dynamic_cast<const instructions::PointerSet*>(new_ins);
+                auto ins_inc = dynamic_cast<const instructions::PointerInc*>(new_ins);
+                auto ins_dec = dynamic_cast<const instructions::PointerDec*>(new_ins);
 
                 // 5.a & 5.b: [program_line-1]. clear(x) | inc(x) | dec(x) | set(x,*); [program_line]. clear(x) | set(x,*);
                 if(prev_ins_clear or prev_ins_inc or prev_ins_dec or prev_ins_set){
-                    auto prev_ins_pointer_act = dynamic_cast<instructions::PointerAction*>(p->get_instruction(program_line-1));
+                    auto prev_ins_pointer_act = dynamic_cast<const instructions::PointerAction*>(p->get_instruction(program_line-1));
                     auto prev_pointers = prev_ins_pointer_act->get_pointers();
                     if(ins_clear and ins_clear->get_pointers()[0] == prev_pointers[0]) return false;
                     if(ins_set and ins_set->get_pointers()[0] == prev_pointers[0]) return false;

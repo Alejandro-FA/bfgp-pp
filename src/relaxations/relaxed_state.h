@@ -15,7 +15,7 @@ namespace relaxation{
     public:
         explicit RelaxedState() = default;
 
-        explicit RelaxedState(State *s){
+        explicit RelaxedState(const State *s){
             for(const auto f : s->get_facts()){
                 add_fact(f);
             }
@@ -23,7 +23,7 @@ namespace relaxation{
 
         ~RelaxedState() = default;
 
-        void add_fact(variables::StateVariable *sv){
+        void add_fact(const variables::StateVariable *sv){
             _relaxed_facts[sv->to_string(false)].insert(sv->get_value());
             //_relaxed_facts[sv->get_name()].insert(sv->get_value());
         }
@@ -38,7 +38,7 @@ namespace relaxation{
 
         }
 
-        [[nodiscard]] bool has_fact(variables::StateVariable *sv) const{
+        [[nodiscard]] bool has_fact(const variables::StateVariable *sv) const{
             return has_fact(sv->to_string(false), sv->get_value());
         }
 

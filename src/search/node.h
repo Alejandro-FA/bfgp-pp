@@ -8,9 +8,9 @@ namespace search {
     class Node {
     public:
         explicit Node(std::unique_ptr<Program> p,
-                      const vec_value_t &evaluations = {0},
+                      vec_value_t evaluations = {0},
                       id_type id = 0) :
-                _evaluations(evaluations), _id(id), _program(std::move(p)) {};
+                _evaluations(std::move(evaluations)), _id(id), _program(std::move(p)) {};
 
         /// Owns _program
         ~Node() = default;
@@ -31,7 +31,12 @@ namespace search {
             return _id;
         }
 
-        [[nodiscard]] Program *get_program() const {
+        [[nodiscard]] Program *get_program() {
+            return _program.get();
+        }
+
+        // Const overload
+        [[nodiscard]] const Program *get_program() const {
             return _program.get();
         }
 
@@ -56,6 +61,16 @@ namespace search {
         NodeComparator() = default;
         ~NodeComparator() = default;
         bool operator()(const std::shared_ptr<Node> &lhs, const std::shared_ptr<Node> &rhs) const {
+            return impl(lhs, rhs);
+        }
+
+        bool operator()(const std::shared_ptr<const Node> &lhs, const std::shared_ptr<const Node> &rhs) const {
+            return impl(lhs, rhs);
+        }
+
+    private:
+        template<SameOrConst<Node> T>
+        [[nodiscard]] bool impl(const std::shared_ptr<T> &lhs, const std::shared_ptr<T> &rhs) const {
             /// Returns true if the LHS evaluations are smaller than the RHS, tie breaking by node ID
             //return (lhs->f() < rhs->f()) or (lhs->f() == rhs->f() and lhs->get_id() < rhs->get_id());
             return (lhs->f() > rhs->f()) or (lhs->f() == rhs->f() and lhs->get_id() > rhs->get_id());

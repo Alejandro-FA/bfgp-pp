@@ -11,20 +11,20 @@
 namespace variables {
     class Variable {
     public:
-        explicit Variable(const std::string &name, const value_t &value) : _name(name), _value(value) {}
-        explicit Variable(Variable *var): _name(var->get_name()), _value(var->get_value()){}
+        explicit Variable(std::string name, const value_t &value) : _name(std::move(name)), _value(value) {}
+        explicit Variable(const Variable *var): _name(var->get_name()), _value(var->get_value()){}
 
         virtual ~Variable() = default;
 
-        [[nodiscard]] virtual std::unique_ptr<Variable> copy_var(){
+        [[nodiscard]] virtual std::unique_ptr<Variable> copy_var() const {
             return std::make_unique<Variable>(this);
         }
 
-        virtual void set_pointer_references(const std::vector<Variable*> &pointers){
+        virtual void set_pointer_references(const std::vector<const Variable*> &pointers){
             /// Do nothing by default - generally accessible but only useful for state variables
         }
 
-        virtual void update_object_references(const std::vector<Object*> &new_obj_refs ){
+        virtual void update_object_references(const std::vector<const Object*> &new_obj_refs ){
             /// Do nothing by default - generally accessible but only useful for state variables
         }
 

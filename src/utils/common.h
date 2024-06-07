@@ -3,6 +3,7 @@
 
 #include<bits/stdc++.h>
 #include<filesystem>
+#include <concepts>
 
 #define PROGRAM_FREQUENCY 10000
 #define INF 1000000000
@@ -43,6 +44,9 @@ typedef std::vector<value_t> vec_value_t;
 typedef std::set<id_type> set_id_t;
 typedef std::set<value_t> set_value_t;
 typedef std::map<std::string,size_t> map_str_idx_t;
+
+template <typename T, typename U>
+concept SameOrConst = std::same_as<T, U> || std::same_as<T, const U>;
 
 #define MaxValue LLONG_MAX
 #define MaxUValue ULLONG_MAX

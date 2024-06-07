@@ -71,17 +71,19 @@ namespace theory::core {
             }
         }
 
-        static void set_reg(Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string>& excluded_prefixes = {}) {
+        static void set_reg(const Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string>& excluded_prefixes = {}) {
             /// test(func_name(pointer1,...,pointerN).  Returns the fact value after interpreting pointers.
+            const GeneralizedDomain *gd_const = gd;
+
             for(const auto& func : gd->get_domain()->get_functions()){
                 auto func_name = func->get_name();
                 if(is_excluded(func_name, excluded_prefixes)) continue;
-                std::vector<ObjectType*> arg_types;
+                std::vector<const ObjectType*> arg_types;
                 for(const auto& obj : func->get_parameters())
                     arg_types.emplace_back(obj->get_type());
-                auto all_ptrs = gd->get_pointers();
-                std::vector<std::vector<variables::Pointer*>> ptr_groundings;
-                std::vector<variables::Pointer*> current_grounding(arg_types.size());
+                auto all_ptrs = gd_const->get_pointers();
+                std::vector<std::vector<const variables::Pointer*>> ptr_groundings;
+                std::vector<const variables::Pointer*> current_grounding(arg_types.size());
                 gr->ground_over_pointers(arg_types, all_ptrs, ptr_groundings, current_grounding);
                 for(const auto& grounding : ptr_groundings) {
                     gd->add_instruction(std::make_unique<instructions::RegisterSet>(func, grounding, value_t{0}));
@@ -98,34 +100,38 @@ namespace theory::core {
             return false;
         }
 
-        static void test_reg(Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string> exclude_prefixes = {}) {
+        static void test_reg(const Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string>& exclude_prefixes = {}) {
             /// test(func_name(pointer1,...,pointerN).  Returns the fact value after interpreting pointers.
+            const GeneralizedDomain *gd_const = gd;
+
             for(const auto& func : gd->get_domain()->get_functions()){
                 auto func_name = func->get_name();
                 if(is_excluded(func_name, exclude_prefixes)) continue;
-                std::vector<ObjectType*> arg_types;
+                std::vector<const ObjectType*> arg_types;
                 for(const auto& obj : func->get_parameters())
                     arg_types.emplace_back(obj->get_type());
-                auto all_ptrs = gd->get_pointers();
-                std::vector<std::vector<variables::Pointer*>> ptr_groundings;
-                std::vector<variables::Pointer*> current_grounding(arg_types.size());
+                auto all_ptrs = gd_const->get_pointers();
+                std::vector<std::vector<const variables::Pointer*>> ptr_groundings;
+                std::vector<const variables::Pointer*> current_grounding(arg_types.size());
                 gr->ground_over_pointers(arg_types, all_ptrs, ptr_groundings, current_grounding);
                 for(const auto& grounding : ptr_groundings)
                     gd->add_instruction(std::make_unique<instructions::RegisterTest>(func, grounding));
             }
         }
 
-        static void cmp_regs(Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string> exclude_prefixes = {}) {
+        static void cmp_regs(const Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string>& exclude_prefixes = {}) {
             /// cmp(func_name(pointers),func_name(pointers2)). Difference between two fact values
-            auto all_ptrs = gd->get_pointers();
+            const GeneralizedDomain *gd_const = gd;
+            auto all_ptrs = gd_const->get_pointers();
+
             for(const auto& func : gd->get_domain()->get_functions()){
                 auto func_name = func->get_name();
                 if(is_excluded(func_name, exclude_prefixes)) continue;
-                std::vector<ObjectType*> arg_types;
+                std::vector<const ObjectType*> arg_types;
                 for(const auto& obj : func->get_parameters())
                     arg_types.emplace_back(obj->get_type());
-                std::vector<std::vector<variables::Pointer*>> ptr_groundings;
-                std::vector<variables::Pointer*> current_grounding(arg_types.size());
+                std::vector<std::vector<const variables::Pointer*>> ptr_groundings;
+                std::vector<const variables::Pointer*> current_grounding(arg_types.size());
                 gr->ground_over_pointers(arg_types, all_ptrs, ptr_groundings, current_grounding);
                 // Only needs to compare in one direction, e.g., cmp(b,a) can also be captured by cmp(a,b)
                 for(size_t gr1=0; gr1<ptr_groundings.size();gr1++)
@@ -136,17 +142,19 @@ namespace theory::core {
             }
         }
 
-        static void assign_regs(Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string> exclude_prefixes = {}) {
+        static void assign_regs(const Grounder *gr, GeneralizedDomain *gd, const std::vector<std::string>& exclude_prefixes = {}) {
             /// assign(func_name(pointers),func_name(pointers2)). Assigns right fact value to the left one
-            auto all_ptrs = gd->get_pointers();
+            const GeneralizedDomain *gd_const = gd;
+            auto all_ptrs = gd_const->get_pointers();
+
             for(const auto& func : gd->get_domain()->get_functions()){
                 auto func_name = func->get_name();
                 if(is_excluded(func_name, exclude_prefixes)) continue;
-                std::vector<ObjectType*> arg_types;
+                std::vector<const ObjectType*> arg_types;
                 for(const auto& obj : func->get_parameters())
                     arg_types.emplace_back(obj->get_type());
-                std::vector<std::vector<variables::Pointer*>> ptr_groundings;
-                std::vector<variables::Pointer*> current_grounding(arg_types.size());
+                std::vector<std::vector<const variables::Pointer*>> ptr_groundings;
+                std::vector<const variables::Pointer*> current_grounding(arg_types.size());
                 gr->ground_over_pointers(arg_types, all_ptrs, ptr_groundings, current_grounding);
                 // Since it can be done from pre- to post-state, any combination is valid
                 for(size_t gr1=0; gr1<ptr_groundings.size();gr1++)
@@ -157,10 +165,12 @@ namespace theory::core {
             }
         }
 
-        static void goto_ins(Grounder *gr, GeneralizedDomain *gd){
+        static void goto_ins(const Grounder *gr, GeneralizedDomain *gd){
             /// goto(dest_line,!(cond_flag1 & ... & cond_flagN)).
             /// Jumps to dest_line if some condition evals to false, otherwise moves to the next line.
-            auto all_flags = gd->get_flags();
+            const GeneralizedDomain *gd_const = gd;
+            auto all_flags = gd_const->get_flags();
+
             std::vector<std::vector<value_t>> all_groundings;
             std::vector<value_t> current_grounding(all_flags.size());
             gr->ground_flags(all_flags, all_groundings, current_grounding);  // ground all flags combinations

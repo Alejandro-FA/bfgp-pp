@@ -13,20 +13,20 @@ namespace instructions {
         /// Returns the assignment from second fact to the first one interpreted over pointers.
         /// The func_names are the same, but pointers are different.
     public:
-        RegisterAssign(Function *f,
-                       const std::vector<variables::Pointer*> &pointers1,
-                       const std::vector<variables::Pointer*> &pointers2) :
+        RegisterAssign(const Function *f,
+                       const std::vector<const variables::Pointer*> &pointers1,
+                       const std::vector<const variables::Pointer*> &pointers2) :
                 RegisterAction("assign", f, pointers1), _pointers2(pointers2){}
 
-        [[nodiscard]] bool is_applicable(Instance *ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance *ins, const ProgramState *ps) const override{
             // Always true by default
             return true;
         }
 
-        [[nodiscard]] value_t apply(Instance *ins, ProgramState *ps) override{
+        [[nodiscard]] value_t apply(const Instance *ins, ProgramState *ps) override{
             ps->set_line(ps->get_line()+1);
             auto state = ps->get_state();
-            std::vector<Object*> objs1, objs2;
+            std::vector<const Object*> objs1, objs2;
             for(const auto& p : _pointers) objs1.emplace_back(p->get_object());
             for(const auto& p : _pointers2) objs2.emplace_back(p->get_object());
             auto fact1 = std::make_unique<variables::StateVariable>(_f, objs1);
@@ -35,11 +35,11 @@ namespace instructions {
             return state->get_value(fact2.get());
         }
 
-        [[nodiscard]] value_t apply_from_pre(Instance *ins, ProgramState *post_state, ProgramState *pre_state){
+        [[nodiscard]] value_t apply_from_pre(const Instance *ins, ProgramState *post_state, const ProgramState *pre_state) const{
             post_state->set_line(post_state->get_line()+1);
             auto post_s = post_state->get_state();
             auto pre_s = pre_state->get_state();
-            std::vector<Object*> objs1, objs2;
+            std::vector<const Object*> objs1, objs2;
             for(const auto& p : _pointers) objs1.emplace_back(p->get_object());
             for(const auto& p : _pointers2) objs2.emplace_back(p->get_object());
             auto fact1 = std::make_unique<variables::StateVariable>(_f, objs1);
@@ -63,7 +63,7 @@ namespace instructions {
         }
 
     protected:
-        std::vector<variables::Pointer*> _pointers2;
+        const std::vector<const variables::Pointer*> _pointers2;
     };
 }
 #endif //__INSTRUCTIONS_RAM_REGISTER_ASSIGN_H__

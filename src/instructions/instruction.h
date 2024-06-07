@@ -10,10 +10,10 @@ namespace instructions {
         /// Instruction is a wrapper class of the different algorithms that can be executed in a given
         /// line of a program, and defines whether it is applicable, its effects and string representation
     public:
-        Instruction(const std::string &name = "empty") : _name(name), _instruction_id(0) {};
+        explicit Instruction(std::string name = "empty") : _name(std::move(name)), _instruction_id(0) {};
         virtual ~Instruction() = default;
 
-        virtual std::string get_name(bool full_info) const{
+        [[nodiscard]] virtual std::string get_name(bool full_info) const{
             return _name;
         }
 
@@ -21,21 +21,21 @@ namespace instructions {
             _instruction_id = id;
         }
 
-        virtual id_type get_id() const{
+        [[nodiscard]] virtual id_type get_id() const{
             return _instruction_id;
         }
 
-        virtual bool is_applicable(Instance* ins, ProgramState *ps) const {
+        [[nodiscard]] virtual bool is_applicable(const Instance* ins, const ProgramState *ps) const {
             /// Returns whether the instruction is applicable in the given program state (false by default)
             return false;
         }
 
-        virtual bool is_conditional() const{
+        [[nodiscard]] virtual bool is_conditional() const{
             /// Returns whether the instruction is a conditional, i.e., test or cmp (false by default)
             return false;
         }
 
-        virtual value_t apply(Instance* ins, ProgramState *ps) {
+        virtual value_t apply(const Instance* ins, ProgramState *ps) {
             /// Modifies the program state and returns the result of the last effect (0 by default)
             return value_t{0};
         }
@@ -49,7 +49,7 @@ namespace instructions {
         }
 
     protected:
-        std::string _name;
+        const std::string _name;
         id_type _instruction_id;
     };
 }

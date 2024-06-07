@@ -15,7 +15,7 @@ namespace evaluation_functions{
         ~HMax() override = default;
 
         // Computing the h_max heuristic per node in the search
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();
             // Error when running the program over active instances
@@ -25,7 +25,7 @@ namespace evaluation_functions{
             //    if(gpp->is_progressive() and (not gpp->is_instance_active(i))) continue;
             //    auto ins = gpp->get_instance(i);
             id_type active_instances_local_idx = 0;
-            for(const auto& idx : gpp->get_active_instance_idxs()){
+            for(const auto& idx : gpp->get_instance_idxs(true)){
                 auto ins = gpp->get_instance(idx);
                 auto s = vps[active_instances_local_idx++]->get_state();
                 auto rpg = std::make_unique<relaxation::RelaxedPlanningGraph>(

@@ -2,6 +2,8 @@
 #define __GENERALIZED_PLANNING_PROBLEM_H__
 
 #include <utility>
+#include <atomic>
+#include <mutex>
 #include "utils/common.h"
 #include "domain.h"
 #include "instance.h"
@@ -13,11 +15,11 @@ public:
 	GeneralizedPlanningProblem(std::unique_ptr<GeneralizedDomain> gd,
                                bool infinite_detection,
                                //bool use_landmarks,
-                               const std::string& problem_folder):
+                               std::string problem_folder):
                                _gd(std::move(gd)),
                                _infinite_detection(infinite_detection),
                                //_use_landmarks(use_landmarks),
-                               _problem_folder(problem_folder),
+                               _problem_folder(std::move(problem_folder)),
                                _actions_theory(false),
                                _progressive(false){
 
@@ -25,13 +27,23 @@ public:
 
     /// Owns _gd and _instances
 	~GeneralizedPlanningProblem() = default;
-	
-	[[nodiscard]] GeneralizedDomain* get_generalized_domain() const{
-		return _gd.get();
-	}
 
-    void activate_actions_theory(){ _actions_theory=true; }
-    [[nodiscard]] bool is_actions_theory(){ return _actions_theory; }
+    [[nodiscard]] const GeneralizedDomain* get_generalized_domain() const{
+        return _gd.get();
+    }
+
+    /// FIXME: Ideally getters should be read-only. Do not mark this method const, as it can lead to a modification of the instance.
+    [[nodiscard]] GeneralizedDomain* get_generalized_domain() {
+        return _gd.get();
+    }
+
+    void activate_actions_theory(){
+        _actions_theory=true;
+    }
+
+    [[nodiscard]] bool is_actions_theory() const{
+        return _actions_theory;
+    }
 
 	void add_instance(std::unique_ptr<Instance> ins ){
 		_instances.emplace_back( std::move(ins) );
@@ -40,10 +52,17 @@ public:
         _all_instance_idxs.insert(_instances.size()-1); // save the instance idx
 	}	
 	
-	[[nodiscard]] Instance* get_instance(size_t idx) const{
+	[[nodiscard]] const Instance* get_instance(size_t idx) const{
         assert(idx < _instances.size());
 		return _instances[idx].get();
 	}
+
+    /// FIXME: Ideally getters should be read-only. Do not mark this method const, as it can lead to a modification of the instance.
+    [[nodiscard]] Instance* get_instance(size_t idx) {
+        assert(idx < _instances.size());
+        return _instances[idx].get();
+
+    }
 
 	[[nodiscard]] size_t get_num_instances() const{
 		return _instances.size();
@@ -114,8 +133,8 @@ public:
         return _active_instances;
     }
 
-    [[nodiscard]] std::set<id_type> get_active_instance_idxs() const{
-        if(_progressive)
+    [[nodiscard]] std::set<id_type> get_instance_idxs(bool only_active=true) const{
+        if(only_active and _progressive)
             return _active_instance_idxs;
         return _all_instance_idxs;
     }
@@ -129,17 +148,17 @@ public:
 	}
 	
 private:
-    std::unique_ptr<GeneralizedDomain> _gd;
-    std::vector< std::unique_ptr<Instance> > _instances;
+    const std::unique_ptr<GeneralizedDomain> _gd; // All search engines will share the same domain
+    std::vector< std::unique_ptr<Instance> > _instances; // All search engines will share the same instances
 
-    vec_bool_t _active_instances;
+    vec_bool_t _active_instances; // Each search engine will have its own copy of active instances
     bool _infinite_detection;
-    //bool _use_landmarks;
-    std::string _problem_folder;
+    //std::atomic<bool> _use_landmarks;
+    const std::string _problem_folder;
     bool _actions_theory;
     bool _progressive;
-    std::set<id_type> _active_instance_idxs;
-    std::set<id_type> _all_instance_idxs;
+    std::set<id_type> _active_instance_idxs; // Each search engine will have its own copy of active instances idxs
+    std::set<id_type> _all_instance_idxs; // Each search engine will have its own copy of instance idxs (relatively cheap to copy)
 
     /// Possible data-structures to use in preprocessing and search
     //std::vector<std::unique_ptr<landmarks::LandmarkGraph> > _landmark_graphs;

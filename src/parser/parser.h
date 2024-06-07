@@ -182,8 +182,8 @@ namespace parser {
         }
 
         static std::unique_ptr<variables::Variable> make_variable(const std::string &name,
-                                                       Domain *dom = nullptr,
-                                                       Action *act = nullptr ){
+                                                       const Domain *dom = nullptr,
+                                                       const Action *act = nullptr ){
             /// Factory method of variables
             // Add more Variable options (Pointer, Flag,...)
             if(utils::is_number(name)) {
@@ -202,7 +202,7 @@ namespace parser {
                 size_t idx = 0;
                 auto func_objs = func_ptr->get_parameters();
                 auto act_parameters = act->get_parameters();
-                std::vector<Object*> lifted_sv_args;
+                std::vector<const Object*> lifted_sv_args;
                 for(const auto& arg : lifted_sv.second){
                     auto obj_ptr = act->get_parameter(arg);
                     // Failure if the argument does not match those of the action
@@ -229,7 +229,7 @@ namespace parser {
                 const std::string &name,
                 std::unique_ptr<variables::Variable> lhs,
                 std::unique_ptr<variables::Variable> rhs,
-                utils::ArgumentParser* arg_parser = nullptr){
+                const utils::ArgumentParser* arg_parser = nullptr){
             /// Factory method of conditions
             if( ">=" == name ) return std::make_unique<expressions::conditions::GreaterEqual>( std::move(lhs), std::move(rhs) );
             else if( "<=" == name ) return std::make_unique<expressions::conditions::LesserEqual>( std::move(lhs), std::move(rhs) );
@@ -245,7 +245,7 @@ namespace parser {
         static std::unique_ptr<expressions::effects::Effect> make_effect(
                 const std::string &name,
                 std::unique_ptr<variables::Variable> lhs,
-                std::unique_ptr<variables::Variable> rhs ){
+                std::unique_ptr<variables::Variable> rhs ) {
             /// Factory method of effects
             if( "+=" == name ) return std::make_unique<expressions::effects::AddAssign>(std::move(lhs), std::move(rhs));
             else if( "-=" == name ) return std::make_unique<expressions::effects::SubtractAssign>(std::move(lhs), std::move(rhs));
@@ -321,7 +321,7 @@ namespace parser {
             return {var1, op, var2};
         }
 
-        static bool is_state_variable(Instance *ins, const std::string &name){
+        static bool is_state_variable(const Instance *ins, const std::string &name){
             /// A state variable must be of the form 'func_name(obj_name1,...)'
             auto it_first_lp = name.find_first_of('(');
             auto it_last_lp = name.find_last_of('(');
@@ -376,7 +376,7 @@ namespace parser {
             return true;
         }
 
-        static std::unique_ptr<variables::StateVariable> make_fact(Instance *ins, const std::string &name){
+        static std::unique_ptr<variables::StateVariable> make_fact(const Instance *ins, const std::string &name){
             /// A fact must be of the form '(func_name(obj_name1,...)=value)'
             auto expr = get_expression(name);
             assert(expr.size() == 3u);
@@ -397,7 +397,7 @@ namespace parser {
             // Get the vector of object pointers
             auto objs_str = lhs_str.substr(it + 1, lhs_str.size() - it - 2);
             auto objs_vec_str = utils::split(objs_str);
-            std::vector<Object*> obj_ptrs;
+            std::vector<const Object*> obj_ptrs;
             for(size_t idx = 0; idx < objs_vec_str.size(); idx++){
                 obj_ptrs.emplace_back(ins->get_object(objs_vec_str[idx]));
             }
@@ -464,7 +464,7 @@ namespace parser {
             ins->add_object(std::make_unique<Object>(obj_name_str, ins->get_next_obj_id(), obj_type_ptr));
         }
 
-        static void parse_action_argument(Domain *dom, Action *act, const std::string &arg){
+        static void parse_action_argument(const Domain *dom, Action *act, const std::string &arg){
             /// An argument is a local object of the action
             if(arg.size() < 2 or arg[0] != '?')
                 utils::system_error("The argument " + arg + " is too short or does not start with '?'",
@@ -521,7 +521,7 @@ namespace parser {
             dom->add_function(std::move(func_uptr));
         }
 
-        static void parse_action(Domain *dom, std::ifstream &ifs, utils::ArgumentParser* arg_parser = nullptr){
+        static void parse_action(Domain *dom, std::ifstream &ifs, const utils::ArgumentParser* arg_parser = nullptr){
             std::string word;
             ifs >> word;
             /// Action signature expected - split the signature into name and arguments
@@ -574,7 +574,7 @@ namespace parser {
         }
 
         static std::unique_ptr<expressions::conditions::Condition> make_goal_condition(
-                Instance *ins, const std::string &word, utils::ArgumentParser* arg_parser = nullptr){
+                const Instance *ins, const std::string &word, const utils::ArgumentParser* arg_parser = nullptr){
             auto expr_vec_str = get_expression(word);  // (lhs_str, op_str, rhs_str)
             if(_valid_conditions.find(expr_vec_str[1]) == _valid_conditions.end())
                 utils::system_error("Goal condition operator " + expr_vec_str[1] +
@@ -590,7 +590,7 @@ namespace parser {
             auto func_ptr = dom->get_function(func_str);
             auto objs_str = expr_vec_str[0].substr(it+1,expr_vec_str[0].size()-it-2);
             auto objs_vec_str = utils::split(objs_str);
-            std::vector<Object*> obj_ptrs;
+            std::vector<const Object*> obj_ptrs;
             for(const auto& o_str : objs_vec_str ){
                 obj_ptrs.emplace_back(ins->get_object(o_str));
             }
@@ -621,7 +621,7 @@ namespace parser {
         }
 
         // In charge of parsing and creating a domain
-        static bool parse_domain(Domain *dom, const std::string &file_name, utils::ArgumentParser* arg_parser = nullptr) {
+        static bool parse_domain(Domain *dom, const std::string &file_name, const utils::ArgumentParser* arg_parser = nullptr) {
             std::ifstream ifs(file_name.c_str());
             if (!ifs) utils::system_error("File '" + file_name + "' does not exist.", ERROR_INPUT);
             std::string word;
@@ -679,7 +679,7 @@ namespace parser {
         }
 
 
-        static void parse_instance(Instance *ins, const std::string &file_name = "", utils::ArgumentParser* arg_parser = nullptr) {
+        static void parse_instance(Instance *ins, const std::string &file_name = "", const utils::ArgumentParser* arg_parser = nullptr) {
             std::ifstream ifs(file_name.c_str());
             if (!ifs) utils::system_error("File '" + file_name + "' does not exist.", ERROR_INPUT);
             std::string word;

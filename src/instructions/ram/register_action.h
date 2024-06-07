@@ -11,15 +11,15 @@ namespace instructions {
     // ToDo: finish checking this class and finish implementation of derived ones
     class RegisterAction : public Instruction {
     public:
-        RegisterAction(const std::string &name, Function *f, const std::vector<variables::Pointer*> &pointers) :
+        RegisterAction(const std::string &name, const Function *f, const std::vector<const variables::Pointer*> &pointers) :
             Instruction(name), _f(f), _pointers(pointers){}
 
-        [[nodiscard]] bool is_applicable(Instance *ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance *ins, const ProgramState *ps) const override{
             // Always true by default
             return true;
         }
 
-        [[nodiscard]] value_t apply(Instance *ins, ProgramState *ps) override{
+        [[nodiscard]] value_t apply(const Instance *ins, ProgramState *ps) override{
             ps->set_line(ps->get_line()+1);
             return value_t{0};
         }
@@ -41,13 +41,13 @@ namespace instructions {
             return (full_info?"[INSTRUCTION]: ":"") + get_name(full_info);
         }
 
-        [[nodiscard]] std::vector<variables::Pointer*> get_pointers() const{
-            return _pointers;
+        [[nodiscard]] std::vector<const variables::Pointer*> get_pointers() const{
+            return {_pointers.cbegin(),_pointers.cend()};
         }
 
     protected:
-        Function *_f;
-        std::vector<variables::Pointer*> _pointers;
+        const Function *_f;
+        const std::vector<const variables::Pointer*> _pointers;
     };
 }
 

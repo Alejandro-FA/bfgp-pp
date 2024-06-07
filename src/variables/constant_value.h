@@ -12,16 +12,16 @@ namespace variables {
     public:
         explicit ConstantValue(const value_t &value) : Variable(std::to_string(value), value) {}
 
-        explicit ConstantValue(ConstantValue *c) : Variable(c->get_name(), c->get_value()) {}
+        explicit ConstantValue(const ConstantValue *c) : Variable(c->get_name(), c->get_value()) {}
 
         ~ConstantValue() override = default;
 
         // ToDo: test this method
-        [[nodiscard]] std::unique_ptr<Variable> copy_var() override{
+        [[nodiscard]] std::unique_ptr<Variable> copy_var() const override {
             return std::make_unique<ConstantValue>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<ConstantValue> copy(){
+        [[nodiscard]] std::unique_ptr<ConstantValue> copy() const {
             return std::make_unique<ConstantValue>(this);
         }
 

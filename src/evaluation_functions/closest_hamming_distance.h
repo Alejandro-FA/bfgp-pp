@@ -15,7 +15,7 @@ namespace evaluation_functions {
 
         ~ClosestHammingDistance() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Computing the closest hamming distance to goal after each execution.
             /// This assumes that goals are vector(ptr_goal) = [value].
             // ToDo: this is currently wrong. Run p only once, then compare the goal condition over each ptr_res_i
@@ -34,7 +34,7 @@ namespace evaluation_functions {
             //    if(gpp->is_progressive() and (not gpp->is_instance_active(i))) continue;
             //    auto ins = gpp->get_instance(i);
             id_type active_instances_local_idx = 0;
-            for(const auto& idx : gpp->get_active_instance_idxs()){
+            for(const auto& idx : gpp->get_instance_idxs(true)){
                 auto ins = gpp->get_instance(idx);
                 auto s = vps[active_instances_local_idx]->get_state();
                 assert(ins->get_goal_condition().size() == 1u); // There should be only vector(ptr_goal) = ... as goal
@@ -43,7 +43,7 @@ namespace evaluation_functions {
                 // ToDo: continue from here...
                 for(const auto& ptr : pointers ){
                     auto state_var = std::make_unique<variables::StateVariable>(vec_func,
-                                                                                std::vector<Object*>({ptr->get_object()}));
+                                                                                std::vector<const Object*>({ptr->get_object()}));
                     auto prev_var_val = s->get_value(state_var.get());
                     value_t current_hamming_dist(0);
                     auto aux = (uvalue_t)goal_expected_val ^ (uvalue_t)prev_var_val;

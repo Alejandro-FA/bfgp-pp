@@ -16,14 +16,14 @@ namespace evaluation_functions {
 
         ~MaxIfs() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Maximize number of lines with IF and TEST instructions
             auto instructions = p->get_instructions();
             value_t if_counter{0};
             for(const auto& ins : p->get_instructions()){
-                auto ins_if = dynamic_cast<instructions::If*>(ins);
+                auto ins_if = dynamic_cast<const instructions::If*>(ins);
                 if(ins_if) ++if_counter;
-                auto ins_test = dynamic_cast<instructions::RegisterTest*>(ins);
+                auto ins_test = dynamic_cast<const instructions::RegisterTest*>(ins);
                 if(ins_test) ++if_counter;
             }
             return -if_counter;  // Returning the negated counter to maximize the number of IF instructions

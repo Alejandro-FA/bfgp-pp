@@ -11,10 +11,10 @@ namespace instructions {
     class RegisterTest : public RegisterAction {
         /// test(func_name(pointer1,...,pointerN)). Returns the fact value after interpreting pointers.
     public:
-        RegisterTest(Function *f, const std::vector<variables::Pointer*> &pointers) :
+        RegisterTest(const Function *f, const std::vector<const variables::Pointer*> &pointers) :
             RegisterAction("test", f, pointers){}
 
-        [[nodiscard]] bool is_applicable(Instance *ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance *ins, const ProgramState *ps) const override{
             // Always true by default
             return true;
         }
@@ -23,10 +23,10 @@ namespace instructions {
             return true;
         }
 
-        [[nodiscard]] value_t apply(Instance *ins, ProgramState *ps) override{
+        [[nodiscard]] value_t apply(const Instance *ins, ProgramState *ps) override{
             ps->set_line(ps->get_line()+1);
             auto state = ps->get_state();
-            std::vector<Object*> objs;
+            std::vector<const Object*> objs;
             for(const auto& p : _pointers){
                 objs.emplace_back(p->get_object());
             }

@@ -28,7 +28,7 @@ TEST(Effects, GeneralOperations) {
     auto pred_holding = std::make_unique<Function>("holding", (id_type ) 0);
     // Create state variables
     auto sv_holding_obj = std::make_unique<variables::StateVariable>(pred_holding.get(),
-                                                          std::vector<Object *>({obj.get()}), value_t{1});
+                                                          std::vector<const Object *>({obj.get()}), value_t{1});
 
     // Create variables
     auto holding_b1 = sv_holding_obj->copy();

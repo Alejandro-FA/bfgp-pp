@@ -15,11 +15,11 @@ namespace instructions{
 
         ~PlanningAction() override = default;
 
-        [[nodiscard]] bool is_applicable(Instance* ins, ProgramState *ps ) const override{
+        [[nodiscard]] bool is_applicable(const Instance* ins, const ProgramState *ps ) const override{
             return _act->is_applicable(ps->get_state());
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             auto s = ps->get_state();
             auto line = ps->get_line();
             value_t res = 0;
@@ -40,11 +40,11 @@ namespace instructions{
             return _act->get_type();
         }
 
-        [[nodiscard]] virtual Action* get_action() const{
+        [[nodiscard]] virtual const Action* get_action() const{
             return _act.get();
         }
 
-        [[nodiscard]] virtual std::vector<Object*> get_arguments() const{
+        [[nodiscard]] virtual std::vector<const Object*> get_arguments() const{
             return _act->get_parameters();
         }
 
@@ -53,7 +53,7 @@ namespace instructions{
         }
 
     private:
-        std::unique_ptr<Action> _act;
+        const std::unique_ptr<Action> _act;
     };
 }
 

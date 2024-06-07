@@ -10,15 +10,15 @@
 namespace instructions {
     class PointerClear : public PointerAction {
     public:
-        PointerClear(variables::Pointer* ptr) : PointerAction("clear",{ptr}){}
-        ~PointerClear() = default;
+        explicit PointerClear(variables::Pointer* ptr) : PointerAction("clear",{ptr}){}
+        ~PointerClear() override = default;
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             // It is always applicable
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             // There must be just one pointer in the class
             auto new_value = value_t{0};
             _pointers[0]->set_value(new_value);

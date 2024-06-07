@@ -11,7 +11,7 @@ public:
 	/// Instructions can be created only once but we keep the logic
 	/// of which actions can be programmed in each line here, so the
 	/// engine does not have to reason about it
-	GeneralizedDomain(std::unique_ptr<Domain> domain): _domain(std::move(domain)){};
+	GeneralizedDomain(std::unique_ptr<const Domain> domain): _domain(std::move(domain)){};
 
     /// Owns _instructions_line and _features
 	~GeneralizedDomain() = default;
@@ -33,44 +33,59 @@ public:
         _flags.emplace_back(std::move(flag));
     }
 
-    [[nodiscard]] variables::Pointer* get_pointer(size_t idx) const{
+    [[nodiscard]] const variables::Pointer* get_pointer(size_t idx) const{
         assert(idx < _pointers.size());
         return _pointers[idx].get();
     }
 
-    // FIXME (Issue #47): inefficient method
-    [[nodiscard]] std::vector<instructions::Instruction*> get_instructions() const{
-        std::vector<instructions::Instruction*> instructions;
-        for(const auto& ins : _instructions){
-            instructions.emplace_back(ins.get());
-        }
-		return instructions;
+    [[nodiscard]] variables::Pointer* get_pointer(size_t idx) {
+        assert(idx < _pointers.size());
+        return _pointers[idx].get();
+    }
+
+    [[nodiscard]] std::vector<const instructions::Instruction*> get_instructions() const{
+        return get_raw_pointers<instructions::Instruction, const instructions::Instruction>(_instructions);
 	}
 
-    // FIXME (Issue #47): inefficient method
-    [[nodiscard]] std::vector<variables::Pointer*> get_pointers() const{
-        std::vector<variables::Pointer*> pointers;
-        for(const auto& ptr : _pointers){
-            pointers.emplace_back(ptr.get());
-        }
-        return pointers;
+    [[nodiscard]] std::vector<instructions::Instruction*> get_instructions() {
+        return get_raw_pointers<instructions::Instruction, instructions::Instruction>(_instructions);
     }
 
-    // FIXME (Issue #47): inefficient method
-    [[nodiscard]] std::vector<variables::Flag*> get_flags() const{
-        std::vector<variables::Flag*> flags;
-        for(const auto& flag : _flags){
-            flags.emplace_back(flag.get());
-        }
-        return flags;
+    [[nodiscard]] std::vector<const variables::Pointer*> get_pointers() const{
+        return get_raw_pointers<variables::Pointer, const variables::Pointer>(_pointers);
     }
 
-	[[nodiscard]] instructions::Instruction* get_instruction(size_t idx) const{
+    [[nodiscard]] std::vector<variables::Pointer*> get_pointers() {
+        return get_raw_pointers<variables::Pointer, variables::Pointer>(_pointers);
+    }
+
+    [[nodiscard]] std::vector<const variables::Flag*> get_flags() const{
+        return get_raw_pointers<variables::Flag, const variables::Flag>(_flags);
+    }
+
+    [[nodiscard]] std::vector<variables::Flag*> get_flags() {
+        return get_raw_pointers<variables::Flag, variables::Flag>(_flags);
+    }
+
+	[[nodiscard]] const instructions::Instruction* get_instruction(size_t idx) const{
         if(idx >= _instructions.size()) return nullptr;  // Instruction not found
         return _instructions[idx].get();
 	}
 
-    [[nodiscard]] instructions::Instruction* get_instruction(const std::string &name) const{
+    [[nodiscard]] instructions::Instruction* get_instruction(size_t idx) {
+        if(idx >= _instructions.size()) return nullptr;  // Instruction not found
+        return _instructions[idx].get();
+    }
+
+    [[nodiscard]] const instructions::Instruction* get_instruction(const std::string &name) const{
+        for(const auto& ins : _instructions){
+            if(ins->get_name(true) == name || ins->get_name(false) == name)
+                return ins.get();
+        }
+        return nullptr;  // Instruction not found
+    }
+
+    [[nodiscard]] instructions::Instruction* get_instruction(const std::string &name) {
         for(const auto& ins : _instructions){
             if(ins->get_name(true) == name || ins->get_name(false) == name)
                 return ins.get();
@@ -90,7 +105,7 @@ public:
         return it->second;
     }*/
 
-    [[nodiscard]] Domain* get_domain() const{
+    [[nodiscard]] const Domain* get_domain() const{
         return _domain.get();
     }
 
@@ -119,7 +134,7 @@ public:
 
 
 protected:
-    std::unique_ptr<Domain> _domain;
+    std::unique_ptr<const Domain> _domain;
     std::vector<std::unique_ptr<instructions::Instruction>> _instructions;
     std::vector<std::unique_ptr<variables::Pointer>> _pointers;
     std::vector<std::unique_ptr<variables::Flag>> _flags;
@@ -128,6 +143,18 @@ protected:
     /// End for instructions => <<ptr_id,dir>,<from=for_line,to=end_for_line+1>> = std::shared_ptr<Instruction> EndFor
     //std::map< std::pair<std::pair<id_type ,int>,std::pair<int,int> >, std::shared_ptr<instructions::Instruction> > _end_for_instructions;
     //std::vector< std::vector< std::shared_ptr<expressions::conditions::Condition> > > _features;
+
+private:
+    // FIXME (Issue #47): inefficient method
+    // Can be used to get raw pointers from a vector of unique pointers both in const and non-const contexts
+    template<typename T, SameOrConst<T> U>
+    [[nodiscard]] static std::vector<U*> get_raw_pointers(const std::vector<std::unique_ptr<T>>& pointers) {
+        std::vector<U*> raw_pointers;
+        for(const auto& ptr : pointers){
+            raw_pointers.emplace_back(ptr.get());
+        }
+        return raw_pointers;
+    }
 };
 
 #endif

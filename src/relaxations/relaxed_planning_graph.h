@@ -14,7 +14,7 @@
 namespace relaxation{
     class RelaxedPlanningGraph{
     public:
-        explicit RelaxedPlanningGraph( Domain* dom, Instance* ins)://, value_t max_val)
+        explicit RelaxedPlanningGraph(const Domain* dom, const Instance* ins)://, value_t max_val)
             _dom(dom), _ins(ins){
             // Reset containers
             reset();
@@ -26,16 +26,16 @@ namespace relaxation{
         /// Owns all relaxed_actions
         ~RelaxedPlanningGraph() = default;
 
-        void precompute_relaxed_actions(){
+        void precompute_relaxed_actions() {
             /// Precompute all grounded relaxed actions
             auto grounder = std::make_unique<Grounder>();
             auto all_objs = _ins->get_raw_objects();
             for(const auto& a : _dom->get_actions()){
                 /// Compute action "a" grounding over the instance objects
-                std::vector<ObjectType*> arg_types;
+                std::vector<const ObjectType*> arg_types;
                 for(const auto& o : a->get_parameters()) arg_types.emplace_back(o->get_type());
-                std::vector<std::vector<Object*>> groundings;
-                std::vector<Object*> current_grounding(arg_types.size());
+                std::vector<std::vector<const Object*>> groundings;
+                std::vector<const Object*> current_grounding(arg_types.size());
                 grounder->ground_over_objects(arg_types, all_objs, groundings, current_grounding);
 
                 for(const auto& gr : groundings){
@@ -45,7 +45,7 @@ namespace relaxation{
             }
         }
 
-        id_type get_fact_id(variables::StateVariable* sv){
+        id_type get_fact_id(const variables::StateVariable* sv) {
             if(sv == nullptr) return 0;  // default id
             auto it = _fact_name_to_id.find(sv->get_name());
             if(it != _fact_name_to_id.end()) return it->second;
@@ -55,26 +55,26 @@ namespace relaxation{
             return id;
         }
 
-        std::string get_fact_name(id_type f_id){
+        [[nodiscard]] std::string get_fact_name(id_type f_id) const{
             assert(f_id < (id_type)_fact_id_to_name.size());
             return _fact_id_to_name[f_id];
         }
 
-        void add_parent(variables::StateVariable* parent, variables::StateVariable* child, RelaxedAction *ra){
+        void add_parent(const variables::StateVariable* parent, const variables::StateVariable* child, const RelaxedAction *ra){
             auto parent_id = get_fact_id(parent);
             auto child_id = get_fact_id(child);
             if(child_id >= (id_type)_parent_facts.size()) _parent_facts.resize(child_id+1);
             _parent_facts[child_id].emplace_back(std::make_pair(parent_id, ra));
         }
 
-        void add_child(variables::StateVariable* child, variables::StateVariable* parent, RelaxedAction *ra){
+        void add_child(const variables::StateVariable* child, const variables::StateVariable* parent, const RelaxedAction *ra){
             auto parent_id = get_fact_id(parent);
             auto child_id = get_fact_id(child);
             if(parent_id >= (id_type)_child_facts.size()) _child_facts.resize(parent_id+1);
             _child_facts[parent_id].emplace_back(std::make_pair(child_id, ra));
         }
 
-        void update_graph_from_relaxed_action(RelaxedAction *ra){
+        void update_graph_from_relaxed_action(const RelaxedAction *ra){
             auto precs = ra->get_prec_facts();
             auto effs = ra->get_effect_facts();
             for(const auto& prec : precs){
@@ -98,7 +98,7 @@ namespace relaxation{
             for(const auto& ra: _relaxed_actions) ra->set_applied(false);
         }
 
-        void build_relaxed_graph(State* root) {
+        void build_relaxed_graph(const State* root) {
             /// 0. Reset containers
             reset();
 
@@ -154,12 +154,12 @@ namespace relaxation{
             _unsolvable = ( not is_goal(rs.get()) );
         }
 
-        bool is_goal(RelaxedState *rs ){
+        bool is_goal(const RelaxedState *rs ) const{
             /// Returns whether the goal condition holds in the RelaxedState rs
             for( const auto& goal : _ins->get_goal_condition() ){
-                auto sv = dynamic_cast<variables::StateVariable*>(goal->get_lhs());
+                auto sv = dynamic_cast<const variables::StateVariable*>(goal->get_lhs());
                 assert(sv != nullptr);
-                auto cv = dynamic_cast<variables::ConstantValue*>(goal->get_rhs());
+                auto cv = dynamic_cast<const variables::ConstantValue*>(goal->get_rhs());
                 assert(cv != nullptr);
                 auto new_sv = sv->copy();
                 new_sv->set_value(cv->get_value());
@@ -204,8 +204,8 @@ namespace relaxation{
 
     private:
         /// Core data domain and instance
-        Domain* _dom;
-        Instance* _ins;
+        const Domain* _dom;
+        const Instance* _ins;
 
         /// RelaxedActions computed from the domain
         std::vector<std::unique_ptr<RelaxedAction>> _relaxed_actions;
@@ -215,13 +215,13 @@ namespace relaxation{
         std::vector<std::string> _fact_id_to_name;
 
         /// Bidirectional edges in the planning graph
-        std::vector<std::vector<std::pair<id_type,RelaxedAction*>>> _parent_facts; // disjunctive parents
-        std::vector<std::vector<std::pair<id_type,RelaxedAction*>>> _child_facts; // disjunctive childs
+        std::vector<std::vector<std::pair<id_type,const RelaxedAction*>>> _parent_facts; // disjunctive parents
+        std::vector<std::vector<std::pair<id_type,const RelaxedAction*>>> _child_facts; // disjunctive childs
         std::vector<std::set<id_type>> _fact_layer;
-        std::vector<std::vector<RelaxedAction*>> _action_layer;
+        std::vector<std::vector<const RelaxedAction*>> _action_layer;
 
         /// Relevant outcome about unsolvability after running the algorithm
-        bool _unsolvable;
+        bool _unsolvable = false;
     };
 }
 

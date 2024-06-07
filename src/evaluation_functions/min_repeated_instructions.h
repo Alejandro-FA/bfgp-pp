@@ -14,7 +14,7 @@ namespace evaluation_functions {
 
         ~MinRepeatedInstructions() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Return the number of repeated instructions
             std::map<std::string, value_t > instruction_counter;
             value_t max_repetitions = 0;

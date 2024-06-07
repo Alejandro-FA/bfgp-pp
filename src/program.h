@@ -18,7 +18,7 @@
 
 class Program{
 public:
-    explicit Program(GeneralizedPlanningProblem *gpp){
+    explicit Program(const GeneralizedPlanningProblem *gpp){
 	//explicit Program( int program_lines = 1){//,std::shared_ptr<instructions::Instruction> end_instruction = nullptr){
         auto program_lines = gpp->get_generalized_domain()->get_program_lines();
         assert( program_lines >= 1 );
@@ -27,7 +27,8 @@ public:
         reset_performance_variables();
 	}
 
-	explicit Program( Program *p ){
+    /// FIXME: We will need to make deep copies for thread-safety. The argument needs to be constant.
+	explicit Program(Program *p){
         /// Copy instructions data
         auto vi = p->get_instructions();
 		_instructions.resize( vi.size() );
@@ -41,8 +42,9 @@ public:
 	}
 	
 	~Program()= default;
-	
-	std::unique_ptr<Program> copy(){
+
+    /// FIXME: We will need to make deep copies for thread-safety. The argument needs to be constant.
+	[[nodiscard]] std::unique_ptr<Program> copy() {
         return std::make_unique<Program>(this);
 	}
 
@@ -55,26 +57,36 @@ public:
         _pc_max = 0;
     }
 
-    [[nodiscard]] std::vector<instructions::Instruction*> get_instructions() const{
-		return _instructions;
+    [[nodiscard]] std::vector<instructions::Instruction*> get_instructions() {
+        return _instructions;
+    }
+
+    // Const overload
+    [[nodiscard]] std::vector<const instructions::Instruction*> get_instructions() const{
+		return {_instructions.cbegin(), _instructions.cend()};
 	}
-	
+
 	void set_instruction(size_t program_line, instructions::Instruction* ins){
         /// Assign instruction ins to the corresponding program_line
 	    assert( program_line <_instructions.size() );
 		_instructions[program_line] = ins;
 	}
 	
-	[[nodiscard]] instructions::Instruction* get_instruction(size_t program_line ) const{
+	[[nodiscard]] const instructions::Instruction* get_instruction(size_t program_line ) const{
 	    assert(program_line < _instructions.size());
 		return _instructions[ program_line ];
 	}
+
+    [[nodiscard]] instructions::Instruction* get_instruction(size_t program_line ) {
+        assert(program_line < _instructions.size());
+        return _instructions[ program_line ];
+    }
 	
 	[[nodiscard]] size_t get_num_instructions() const{
 		return _instructions.size();
 	}
 	
-	[[nodiscard]] bool is_halting_condition(ProgramState* ps, int &error ){
+	[[nodiscard]] bool is_halting_condition(const ProgramState* ps, int &error ) {
 		auto line = ps->get_line();
 		// EMPTY line is a halting condition (no transition defined)
         if( _instructions[line] == nullptr ) {
@@ -82,13 +94,13 @@ public:
             return true;
         }
         // Either True or False evaluation of End instructions is a halting condition
-        return nullptr != dynamic_cast<instructions::End*>(_instructions[line]);
+        return nullptr != dynamic_cast<const instructions::End*>(_instructions[line]);
     }
 	
-	bool is_goal(ProgramState* ps, Instance* ins, int &error ) const{
+	bool is_goal(const ProgramState* ps, const Instance* ins, int &error ) const{
         //std::cout << "Instance#" << ins->get_instance_id() << ":\n" << ps->to_string() << "\n";
 		auto line = ps->get_line();
-        auto end = dynamic_cast<instructions::End*>( _instructions[line] );
+        auto end = dynamic_cast<const instructions::End*>( _instructions[line] );
         if( end == nullptr ) return false;
         bool is_goal = end->is_applicable(ins, ps);
         if(not is_goal) error = ERROR_INCORRECT_PROGRAM; // ERROR 1: Incorrect program
@@ -111,14 +123,14 @@ public:
     }*/
 
     // ToDo: CPP theory dependant - update from a settings class
-    [[nodiscard]] bool is_terminating(ProgramState* ps, std::set<std::string > &visited) const{
+    [[nodiscard]] bool is_terminating(const ProgramState* ps, std::set<std::string > &visited) const{
     //[[nodiscard]] bool is_terminating(ProgramState* ps, std::unordered_set<size_t> &visited) const{
         /// Returns whether the current program is terminating based on repeated states in backward loops
         auto line = ps->get_line();
         // cpp theory
-        auto ef = dynamic_cast<instructions::EndFor*>( _instructions[ line ] );
+        auto ef = dynamic_cast<const instructions::EndFor*>( _instructions[ line ] );
         // assembler theory
-        auto g = dynamic_cast<instructions::Goto*>(_instructions[line]);
+        auto g = dynamic_cast<const instructions::Goto*>(_instructions[line]);
         if( ef or (g and g->get_destination_line()<line)){
             auto ps_str = ps->to_string();
             // Infinite loop detected
@@ -135,7 +147,7 @@ public:
         return true;
     }
 
-    static void update_pointer(Instance *ins, variables::Pointer* ptr, size_t idx){
+    static void update_pointer(const Instance *ins, variables::Pointer* ptr, size_t idx){
         auto objs = ins->get_typed_objects(ptr->get_type()->get_name());
         assert(idx < objs.size());
         ptr->set_value(idx);
@@ -148,7 +160,7 @@ public:
         }
     }
 
-    static std::unique_ptr<ProgramState> make_program_state(GeneralizedDomain *gd, State *s){
+    static std::unique_ptr<ProgramState> make_program_state(GeneralizedDomain *gd, const State *s){
         auto ps = std::make_unique<ProgramState>(s->copy());
         for( auto f : gd->get_flags())
             ps->add_flag(f);
@@ -158,13 +170,13 @@ public:
         return ps;
     }
 
-    static void reset_pointers(ProgramState *ps, Instance *ins){
+    static void reset_pointers(ProgramState *ps, const Instance *ins){
         for(const auto& ptr : ps->get_pointers()) {
             update_pointer(ins, ptr, 0u);
         }
     }
 
-    static std::vector<bool> reset_program_state(ProgramState *ps, Instance *ins, bool is_action_theory=false){
+    static std::vector<bool> reset_program_state(ProgramState *ps, const Instance *ins, bool is_action_theory=false){
         /// Apply the default behavior (all pointers to 0, and state to init)
         /// and returns the pointers assigned to specific objects when "action_X" is defined in INIT
         ps->set_state(ins->get_initial_state()->copy()); // set the planning state to s
@@ -208,7 +220,7 @@ public:
         return ptr_assigned;
     }
 
-    [[maybe_unused]] std::vector<ProgramState*> run(GeneralizedPlanningProblem *gpp, bool save_pddl_plans = false){
+    [[maybe_unused]] std::vector<ProgramState*> run(GeneralizedPlanningProblem *gpp, bool save_pddl_plans = false, bool only_active_instances = true){
         reset_performance_variables();
         if(save_pddl_plans){
             _pddl_plans.clear();
@@ -219,7 +231,7 @@ public:
         auto infinite_detection = gpp->get_infinite_detection();
         //auto use_landmarks = gpp->get_use_landmarks();// ToDo: evaluation function dependant - maybe some program specialization would work
 		//auto num_instances = gpp->get_num_instances();
-        auto active_instance_idxs = gpp->get_active_instance_idxs();
+        auto active_instance_idxs = gpp->get_instance_idxs(only_active_instances);
 
 		// One program state per instance
         clear_program_states();
@@ -291,7 +303,7 @@ public:
                 else if(ins_type == ActionType::Memory ) {
                     _num_of_mem_planning_actions++;
                     // Memory planning actions are saved in PDDL plans
-                    auto act = dynamic_cast<instructions::PlanningAction*>(_instructions[line]);
+                    auto act = dynamic_cast<const instructions::PlanningAction*>(_instructions[line]);
                     if(act and act->is_applicable(ins, ps)) {
                         _total_plan_costs++;
                         if (save_pddl_plans) {
@@ -552,8 +564,16 @@ public:
         _pss.clear();
     }
 
-    [[nodiscard]] std::vector<ProgramState*> get_program_states() const{
+    [[nodiscard]] std::vector<ProgramState*> get_program_states() {
         auto pss = std::vector<ProgramState*>();
+        pss.reserve(_pss.size());
+        for(const auto& ps : _pss)
+            pss.emplace_back(ps.get());
+        return pss;
+    }
+
+    [[nodiscard]] std::vector<const ProgramState*> get_program_states() const{
+        auto pss = std::vector<const ProgramState*>();
         pss.reserve(_pss.size());
         for(const auto& ps : _pss)
             pss.emplace_back(ps.get());
@@ -565,17 +585,17 @@ private:
     std::vector<instructions::Instruction*> _instructions;
 
     /// Empirical complexity data
-	long long _num_of_steps;
-    long long _num_of_math_planning_actions;
-    long long _num_of_mem_planning_actions;
-    long long _total_plan_costs;
-    long long _failed_instance_idx;
+	long long _num_of_steps = 0;
+    long long _num_of_math_planning_actions = 0;
+    long long _num_of_mem_planning_actions = 0;
+    long long _total_plan_costs = 0;
+    long long _failed_instance_idx = -1;
 
     /// PDDL plans
     std::vector<vec_str_t> _pddl_plans;
 
     // Temporal resulting data, e.g., program states, pc_max (max line reached with empty instruction)
-    size_t _pc_max;
+    size_t _pc_max = 0;
     std::vector< std::unique_ptr<ProgramState> > _pss;
 
     /// Landmarks data

@@ -22,18 +22,19 @@ TEST(Grounder, InstructionPointerGroundingAndApplicability) {
     auto grounder = std::make_unique<Grounder>();
     for (const auto &act: gd->get_domain()->get_actions()) {
         /// BEGIN - Code from theories/core/strips.h
-        std::vector<ObjectType*> arg_types;
+        std::vector<const ObjectType*> arg_types;
         for(const auto& o : act->get_parameters()){
             arg_types.emplace_back(o->get_type());
         }
-        auto all_ptrs = gd->get_pointers();
-        std::vector<std::vector<variables::Pointer*>> ptr_groundings;
-        std::vector<variables::Pointer*> current_grounding(arg_types.size());
+        const GeneralizedDomain *gd_const = gd.get();
+        auto all_ptrs = gd_const->get_pointers();
+        std::vector<std::vector<const variables::Pointer*>> ptr_groundings;
+        std::vector<const variables::Pointer*> current_grounding(arg_types.size());
         grounder->ground_over_pointers(arg_types, all_ptrs, ptr_groundings, current_grounding);
 
         for(const auto& grounding : ptr_groundings){
             // copy action schema (with references to new parameters)
-            std::vector<variables::Variable*> var_grounding;
+            std::vector<const variables::Variable*> var_grounding;
             for(const auto& ptr : grounding)
                 var_grounding.emplace_back(ptr);
             gd->add_instruction(std::make_unique<instructions::PlanningAction>(
@@ -134,7 +135,7 @@ TEST(Grounder, InstructionPointerGroundingAndApplicability) {
     auto state = ps->get_state();
     auto goal_conds = instance->get_goal_condition();
     EXPECT_TRUE(std::all_of(goal_conds.begin(), goal_conds.end(),
-                            [state](expressions::conditions::Condition *c){
+                            [state](const expressions::conditions::Condition *c){
                                         return c->eval_condition(state); }));
 
     all_ins[6]->apply(instance, ps.get()); // apply: stack(z1,z2) = stack(b1,b2)

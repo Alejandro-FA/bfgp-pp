@@ -34,9 +34,9 @@ namespace search {
             return _open.top();
         }
 
-        [[nodiscard]] bool is_goal(Node* node, bool run_program=false) override {
+        [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) override {
             auto p = node->get_program();
-            auto vps = (run_program?p->run(_gpp.get()):p->get_program_states());
+            auto vps = (run_program?p->run(_gpp.get(), false, only_active_instances):p->get_program_states());
             _last_failed_instance_idx = -1;
 
             // FIXME: if this happens, then progressive mode fails
@@ -46,14 +46,14 @@ namespace search {
                 return false; // Check whether some error occurred during execution
             }
 
-            auto active_instance_idxs = _gpp->get_active_instance_idxs();
+            auto instance_idxs = _gpp->get_instance_idxs(only_active_instances);
             id_type local_id = 0;
-            for(const auto& idx : active_instance_idxs){
+            for(const auto& idx : instance_idxs){
             //for (id_type id = 0; id < (id_type)vps.size(); id++) {
             //    if(_gpp->is_progressive() and (not _gpp->is_instance_active(id))) continue;
                 auto ins = _gpp->get_instance(idx);
                 auto line = vps[local_id]->get_line();
-                auto end = dynamic_cast<instructions::End*>(p->get_instruction(line));
+                auto end = dynamic_cast<const instructions::End*>(p->get_instruction(line));
                 // It is not a goal, if the instruction is not an END
                 if(end == nullptr) {
                     _last_failed_instance_idx = idx;
@@ -84,7 +84,7 @@ namespace search {
             return true;
         }
 
-        [[nodiscard]] bool check_base_constraints(Program *p, size_t pc_max, instructions::Instruction* ins){
+        [[nodiscard]] bool check_base_constraints(const Program *p, size_t pc_max, const instructions::Instruction* ins) const{
             /// Validates if exists a line with non-empty instructions where 'p' and 'base_program' programs differ
             /// Input:
             ///  - 'p', the Program to validate
@@ -150,7 +150,7 @@ namespace search {
 
                 // Special expansion for CPP theory.
                 // If the current instruction is a FOR, we also program an ENDFOR at destination line
-                auto ins_for = dynamic_cast<instructions::For*>(ins);
+                auto ins_for = dynamic_cast<const instructions::For*>(ins);
                 if (ins_for) {
                     auto for_ptr = ins_for->get_pointer();
                     auto dest_line = ins_for->get_destination_line();
@@ -169,7 +169,7 @@ namespace search {
             return childs;
         }
 
-        [[nodiscard]] vec_value_t f(Node* node) override {
+        [[nodiscard]] vec_value_t f(const Node* node) const override {
             auto p = node->get_program();
             vec_value_t val_h;
             val_h.reserve(_evaluation_functions.size());
@@ -178,7 +178,7 @@ namespace search {
             return val_h;
         }
 
-        void print_node(Node *n){
+        void print_node(Node *n) const {
             std::cout << "[ENGINE]\n";
             std::cout << "Node id=" << n->get_id() << "\n";
             std::cout << "Expanded=" << _expanded_nodes << "\n";
@@ -203,10 +203,7 @@ namespace search {
                                                         vec_value_t(_evaluation_functions.size(), INF),
                                                         _evaluated_nodes++);
                 // if the program solves all instances finish
-                bool is_progressive = _gpp->is_progressive();
-                _gpp->set_progressive(false);
-                bool all_goal = is_goal(base_node.get(), true);
-                _gpp->set_progressive(is_progressive);
+                bool all_goal = is_goal(base_node.get(), true, false);
                 if (all_goal) {
                     base_node->set_f(f(base_node.get()));
                     add_node(base_node);
@@ -264,13 +261,10 @@ namespace search {
                     child->set_f(f(child.get()));
                     child->set_id(_evaluated_nodes++);
 
-                    if (is_goal(child.get(), false)) {
+                    if (is_goal(child.get(), false, true)) {
                         std::cout << "[INFO] Solution candidate!\n" << child->to_string();
                         // if the program solves all instances finish
-                        bool is_progressive = _gpp->is_progressive();
-                        _gpp->set_progressive(false);
-                        bool all_goal = is_goal(child.get(), true);
-                        _gpp->set_progressive(is_progressive);
+                        bool all_goal = is_goal(child.get(), true, false);
                         if (all_goal) {
                             child->set_f(f(child.get()));
                             add_node(child);

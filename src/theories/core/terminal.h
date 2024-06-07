@@ -12,7 +12,7 @@ namespace theory::core{
     class Terminal{
         /// The Terminal theory consists of an End instruction that can be programmed in any line
     public:
-        Terminal(GeneralizedDomain *gd){
+        explicit Terminal(GeneralizedDomain *gd){
             gd->add_instruction(std::make_unique<instructions::End>());
         }
     };

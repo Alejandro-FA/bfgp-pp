@@ -48,12 +48,12 @@ namespace theory{
             ifs->make_ifs(grounder.get(), gd);
         }
 
-        bool check_endfor_constraints(Program *p, size_t program_line, instructions::Instruction *new_ins){
-            auto endfor_ins = dynamic_cast<instructions::EndFor*>(new_ins);
+        static bool check_endfor_constraints(const Program *p, size_t program_line, const instructions::Instruction *new_ins) {
+            auto endfor_ins = dynamic_cast<const instructions::EndFor*>(new_ins);
             if(endfor_ins) {
                 auto orig_line = endfor_ins->get_original_line();
                 if(program_line <= orig_line) return false;
-                auto for_ins = dynamic_cast<instructions::For*>(p->get_instruction(orig_line));
+                auto for_ins = dynamic_cast<const instructions::For*>(p->get_instruction(orig_line));
                 if(nullptr == for_ins) return false;
                 if(program_line != for_ins->get_destination_line()) return false;
                 if(for_ins->get_pointer() != endfor_ins->get_pointer()) return false;
@@ -62,30 +62,30 @@ namespace theory{
             }
             // Otherwise, only EndFor instructions can be programmed in For destination lines
             for(size_t prev_line = 0; prev_line < program_line; ++prev_line){
-                auto for_ins = dynamic_cast<instructions::For*>(p->get_instruction(prev_line));
+                auto for_ins = dynamic_cast<const instructions::For*>(p->get_instruction(prev_line));
                 if(nullptr == for_ins) continue;
                 if(for_ins->get_destination_line() == program_line) return false;
             }
             return true;
         }
 
-        [[nodiscard]] bool check_syntax_constraints(Program *p, size_t program_line, instructions::Instruction *new_ins) override {
+        [[nodiscard]] bool check_syntax_constraints(const Program *p, size_t program_line, const instructions::Instruction *new_ins) override {
             /// Issue #8: do not loop over single object pointers (ToDo: no access to pointer domain from the instance)
             //bool print_data = false;
             //if(program_line == 0 and new_ins->get_name(true)=="for(ptr_object_0++,3)")
 
             /// 0. END constraints
-            auto new_ins_end = dynamic_cast<instructions::End*>(new_ins);
+            auto new_ins_end = dynamic_cast<const instructions::End*>(new_ins);
             if(new_ins_end){
                 /// 0.a It cannot be programmed after an IF or TEST
                 if(program_line>0u) {
-                    auto prev_ins_test = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(program_line-1));
-                    auto prev_ins_if = dynamic_cast<instructions::If*>(p->get_instruction(program_line-1));
+                    auto prev_ins_test = dynamic_cast<const instructions::RegisterTest*>(p->get_instruction(program_line-1));
+                    auto prev_ins_if = dynamic_cast<const instructions::If*>(p->get_instruction(program_line-1));
                     if((prev_ins_test != nullptr) or (prev_ins_if != nullptr)) return false;
                 }
                 /// 0.b It cannot be programmed inside a FOR
                 for(size_t line=0u; line < program_line; line++){
-                    auto prev_for = dynamic_cast<instructions::For*>(p->get_instruction(line));
+                    auto prev_for = dynamic_cast<const instructions::For*>(p->get_instruction(line));
                     if(prev_for and prev_for->get_destination_line() > program_line) return false;
                 }
 
@@ -93,17 +93,17 @@ namespace theory{
                 return true;
             }
 
-            auto endfor_ins = dynamic_cast<instructions::EndFor*>(new_ins);
+            auto endfor_ins = dynamic_cast<const instructions::EndFor*>(new_ins);
             auto endfor_constraints = check_endfor_constraints(p, program_line, new_ins);
             if(endfor_ins) return endfor_constraints;
             else if(not endfor_constraints) return false;
 
             /// 1. IF syntactic constraints
-            auto ins_if = dynamic_cast<instructions::If*>(new_ins);
+            auto ins_if = dynamic_cast<const instructions::If*>(new_ins);
 
             /// 1.a if the previous instruction is TEST, the current instruction must be an IF
             if(program_line>0){
-                auto prev_ins_regtest = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(program_line-1));
+                auto prev_ins_regtest = dynamic_cast<const instructions::RegisterTest*>(p->get_instruction(program_line-1));
                 if(ins_if == nullptr and prev_ins_regtest) return false;
             }
 
@@ -112,7 +112,7 @@ namespace theory{
                 if(program_line == 0) return false;
 
                 /// 1.c An IF must be programmed after a TEST instruction
-                auto prev_ins_regtest = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(program_line-1));
+                auto prev_ins_regtest = dynamic_cast<const instructions::RegisterTest*>(p->get_instruction(program_line-1));
                 if(prev_ins_regtest == nullptr) return false;
 
                 /// 1.d An IF must be a forward jump and size>1, i.e., destination line >= program line + 2
@@ -125,14 +125,14 @@ namespace theory{
                 /// 1.f Structured programming requires that loops programmed before the IF
                 /// do not end inside the IF instruction
                 for (auto next_line = program_line + 1; next_line < dest_line; next_line++) {
-                    if (dynamic_cast<instructions::EndFor*>(p->get_instruction(next_line)))
+                    if (dynamic_cast<const instructions::EndFor*>(p->get_instruction(next_line)))
                         return false;
                 }
 
                 /// 1.g Structured programming requires previous IF instructions to jump before the starting
                 /// line of the current IF, or to the same destination line or after
                 for (size_t prev_line = 0; prev_line < program_line; prev_line++) {
-                    auto ins_prev_if = dynamic_cast<instructions::If*>(p->get_instruction(prev_line));
+                    auto ins_prev_if = dynamic_cast<const instructions::If*>(p->get_instruction(prev_line));
                     if (ins_prev_if) {
                         auto prev_dest_line = ins_prev_if->get_destination_line();
                         if((prev_dest_line >= program_line) and (prev_dest_line < dest_line)) return false;
@@ -140,14 +140,14 @@ namespace theory{
                 }
 
                 /// 1.h Only ENDs or ENDFORs can be destination lines
-                auto dest_ins_end = dynamic_cast<instructions::End*>(p->get_instruction(dest_line));
-                auto dest_ins_endfor = dynamic_cast<instructions::EndFor*>(p->get_instruction(dest_line));
+                auto dest_ins_end = dynamic_cast<const instructions::End*>(p->get_instruction(dest_line));
+                auto dest_ins_endfor = dynamic_cast<const instructions::EndFor*>(p->get_instruction(dest_line));
                 if(dest_ins_end == nullptr and dest_ins_endfor == nullptr) return false;
 
             }
 
             /// 2. RegisterTest syntactic constraints
-            auto ins_test = dynamic_cast<instructions::RegisterTest*>(new_ins);
+            auto ins_test = dynamic_cast<const instructions::RegisterTest*>(new_ins);
             /// 2.X first line is always a test (at least one precondition per action)
             if(program_line==0){
                 if(ins_test) return true;
@@ -157,13 +157,13 @@ namespace theory{
             if(ins_test and program_line + 2 < p->get_num_instructions()) {
                 /// 2.a Issue #10: if the instruction is a TEST but there is an ENDFOR in the next two lines, skip it
                 for (auto next_line = program_line+1; next_line<program_line+3; next_line++) {
-                    auto next_endfor = dynamic_cast<instructions::EndFor*>(p->get_instruction(next_line));
+                    auto next_endfor = dynamic_cast<const instructions::EndFor*>(p->get_instruction(next_line));
                     if (next_endfor) return false;
                 }
 
                 /// 2.b If it is a nested IF, check the previous test is lexicographically smaller
                 if(program_line > 1u){
-                    auto prev_ins_test = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(program_line-2));
+                    auto prev_ins_test = dynamic_cast<const instructions::RegisterTest*>(p->get_instruction(program_line-2));
                     if(prev_ins_test and prev_ins_test->get_id() >= ins_test->get_id()) { return false; }
                 }
                 /*/// 2.b (Intermediate alternative) All TEST instructions must be different
@@ -184,8 +184,8 @@ namespace theory{
                 }*/
                 /// 2.d TESTs can only be programmed after an IF or FOR
                 if(program_line > 0){ // Should always be the case
-                    auto prev_ins_if = dynamic_cast<instructions::If*>(p->get_instruction(program_line-1));
-                    auto prev_ins_for = dynamic_cast<instructions::For*>(p->get_instruction(program_line-1));
+                    auto prev_ins_if = dynamic_cast<const instructions::If*>(p->get_instruction(program_line-1));
+                    auto prev_ins_for = dynamic_cast<const instructions::For*>(p->get_instruction(program_line-1));
                     if(prev_ins_if == nullptr and prev_ins_for == nullptr) return false;
                 }
             }
@@ -193,17 +193,17 @@ namespace theory{
             else if(ins_test) return false;
 
             /// 3. If it is a PointerAction, it must be checked that the pointer is not inside a loop that modifies it
-            auto pa = dynamic_cast<instructions::PointerAction*>(new_ins);
+            auto pa = dynamic_cast<const instructions::PointerAction*>(new_ins);
             if (pa) {
                 auto pa_ptrs = pa->get_pointers();
                 for(auto next_line = program_line+1; next_line < p->get_num_instructions(); next_line++){
-                    auto next_endfor = dynamic_cast<instructions::EndFor*>(p->get_instruction(next_line));
+                    auto next_endfor = dynamic_cast<const instructions::EndFor*>(p->get_instruction(next_line));
                     if(next_endfor and next_endfor->get_pointer() == pa_ptrs[0]) return false;
                 }
             }
 
             /// 4. FOR syntactic constraints
-            auto ins_for = dynamic_cast<instructions::For*>(new_ins);
+            auto ins_for = dynamic_cast<const instructions::For*>(new_ins);
             if (ins_for) {
                 auto for_ptr = ins_for->get_pointer();
                 auto dest_line = ins_for->get_destination_line();
@@ -211,7 +211,7 @@ namespace theory{
                 if(dest_line < program_line+2) return false;
 
                 for (int prev_line = program_line - 1; prev_line >= 0; prev_line--) {
-                    auto prev_for = dynamic_cast<instructions::For*>(p->get_instruction(prev_line));
+                    auto prev_for = dynamic_cast<const instructions::For*>(p->get_instruction(prev_line));
                     if (prev_for) {
                         auto prev_for_ptr = prev_for->get_pointer();
                         auto prev_dest_line = prev_for->get_destination_line();
@@ -226,7 +226,7 @@ namespace theory{
 
                 /// 4.d A previous IF instruction can not end up in the middle of a FOR instruction
                 for (int prev_line = program_line - 1; prev_line >= 0; prev_line--) {
-                    auto prev_if = dynamic_cast<instructions::If*>(p->get_instruction(prev_line));
+                    auto prev_if = dynamic_cast<const instructions::If*>(p->get_instruction(prev_line));
                     if (prev_if) {
                         auto dest_if_line = prev_if->get_destination_line();
                         if (program_line < dest_if_line and dest_if_line <= dest_line) return false;
@@ -235,7 +235,7 @@ namespace theory{
 
                 if(program_line > 0) {
                     /// 4.e If the previous instruction is a PointerAction, it shouldn't modify the same for_ptr
-                    auto ins_ptr = dynamic_cast<instructions::PointerAction*>(p->get_instruction(program_line - 1));
+                    auto ins_ptr = dynamic_cast<const instructions::PointerAction*>(p->get_instruction(program_line - 1));
                     if(ins_ptr and ins_ptr->get_pointers()[0] == for_ptr) return false;
                 }
 
@@ -255,7 +255,7 @@ namespace theory{
                 /// 4.X This must be the last constraint to check // ToDo: uncomment this to get ELEVATOR-STOP
                 std::set<loop_pattern_t> new_loop_pattern;
                 for(size_t line=0;line<program_line;line++){
-                    auto prev_for = dynamic_cast<instructions::For*>(p->get_instruction(line));
+                    auto prev_for = dynamic_cast<const instructions::For*>(p->get_instruction(line));
                     if(prev_for){
                         new_loop_pattern.insert(std::make_tuple(
                                 prev_for->get_pointer()->get_type()->get_name(),
@@ -278,7 +278,7 @@ namespace theory{
             }
 
             /// 5. SET syntactic constraints
-            auto ins_set_reg = dynamic_cast<instructions::RegisterSet*>(new_ins);
+            auto ins_set_reg = dynamic_cast<const instructions::RegisterSet*>(new_ins);
             if(ins_set_reg){
                 auto current_name = ins_set_reg->get_name(false);
                 auto current_fact_name = ins_set_reg->get_fact_name(false);
@@ -286,15 +286,15 @@ namespace theory{
                 if(program_line < 2) return false;
                 /// 3.b Previous instruction must be either an IF or SET
                 auto prev_ins = p->get_instruction(program_line-1);
-                auto prev_ins_if = dynamic_cast<instructions::If*>(prev_ins);
-                auto prev_ins_set = dynamic_cast<instructions::RegisterSet*>(prev_ins);
+                auto prev_ins_if = dynamic_cast<const instructions::If*>(prev_ins);
+                auto prev_ins_set = dynamic_cast<const instructions::RegisterSet*>(prev_ins);
                 if(prev_ins_if == nullptr and prev_ins_set == nullptr) return false;
 
                 /*/// 3.c If the previous instruction is a SET, check that the modified fact is different
                 if(prev_ins_set and prev_ins_set->get_fact_name(false) == current_fact_name) return false;*/
                 /// (Stronger alternative) 3.c Do not repeat SET instructions
                 for(size_t line=0; line < program_line; line++){
-                    auto prev_ins_set = dynamic_cast<instructions::RegisterSet*>(p->get_instruction(line));
+                    auto prev_ins_set = dynamic_cast<const instructions::RegisterSet*>(p->get_instruction(line));
                     if(prev_ins_set and prev_ins_set->get_id() == new_ins->get_id()) return false;
                 }
 
@@ -302,7 +302,7 @@ namespace theory{
                 if(ins_set_reg->get_value()==0) {
                     bool test_fact_found = false;
                     for (size_t line = 0; line < program_line; line++) {
-                        auto prev_ins_test = dynamic_cast<instructions::RegisterTest *>(p->get_instruction(line));
+                        auto prev_ins_test = dynamic_cast<const instructions::RegisterTest *>(p->get_instruction(line));
                         if (prev_ins_test and prev_ins_test->get_fact_name(false) == current_fact_name) {
                             test_fact_found = true;
                             break;
@@ -330,7 +330,7 @@ namespace theory{
                 /// 3.e (Intermediate) Explore sequence of SET instructions in lexicographical ascending order
                 ///     and do not repeat fact names
                 if(program_line>0){
-                    auto prev_ins_set  = dynamic_cast<instructions::RegisterSet*>(p->get_instruction(program_line-1));
+                    auto prev_ins_set  = dynamic_cast<const instructions::RegisterSet*>(p->get_instruction(program_line-1));
                     if(prev_ins_set and prev_ins_set->get_id() >= new_ins->get_id()) return false;
                     if(prev_ins_set and prev_ins_set->get_fact_name(false) == ins_set_reg->get_fact_name(false)) return false;
                 }
@@ -346,7 +346,7 @@ namespace theory{
             /// 1. FOR semantic constraints: do not allow to modify pointers assigned by the action, e.g. ptr_object_0=2 when action_x(object2)
             auto gd = gpp->get_generalized_domain();
             auto gd_ptrs = gd->get_pointers();
-            auto ins_for = dynamic_cast<instructions::For*>(new_ins);
+            auto ins_for = dynamic_cast<const instructions::For*>(new_ins);
             if(ins_for){
                 auto ins_for_ptr = ins_for->get_pointer();
                 size_t ins_for_ptr_id = 0u;
@@ -366,14 +366,14 @@ namespace theory{
 
             /// 2. TEST semantic constraints:
             /// 2.a Allow TESTs only used pointers so far
-            auto ins_test = dynamic_cast<instructions::RegisterTest*>(new_ins);
+            auto ins_test = dynamic_cast<const instructions::RegisterTest*>(new_ins);
             if(ins_test) {
                 auto instance = gpp->get_instance(0u); // The same pointers should be initially used in every instance
                 auto ps = p->make_program_state(gd, instance->get_initial_state());
                 auto ptr_used = p->reset_program_state(ps.get(), instance, true);
                 /// 3.a Allow SETs only on used pointers so far
                 for (size_t line = 0u; line < program_line; line++) {
-                    auto prev_ins_for = dynamic_cast<instructions::For *>(p->get_instruction(line));
+                    auto prev_ins_for = dynamic_cast<const instructions::For *>(p->get_instruction(line));
                     if (prev_ins_for and program_line < prev_ins_for->get_destination_line()) {
                         // Search pointer idx
                         auto for_ptr = prev_ins_for->get_pointer();
@@ -397,14 +397,14 @@ namespace theory{
             }
 
             /// 3. SET semantic constraints
-            auto ins_regset = dynamic_cast<instructions::RegisterSet*>(new_ins);
+            auto ins_regset = dynamic_cast<const instructions::RegisterSet*>(new_ins);
             if(ins_regset){
                 auto instance = gpp->get_instance(0u); // The same pointers should be initially used in every instance
                 auto ps = p->make_program_state(gd, instance->get_initial_state());
                 auto ptr_used = p->reset_program_state(ps.get(), instance, true);
                 /// 3.a Allow SETs only on used pointers so far
                 for(size_t line=0u; line < program_line; line++){
-                    auto prev_ins_for = dynamic_cast<instructions::For*>(p->get_instruction(line));
+                    auto prev_ins_for = dynamic_cast<const instructions::For*>(p->get_instruction(line));
                     if(prev_ins_for and program_line < prev_ins_for->get_destination_line()){
                         // Search pointer idx
                         auto for_ptr = prev_ins_for->get_pointer();

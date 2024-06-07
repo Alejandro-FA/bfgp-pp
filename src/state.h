@@ -13,13 +13,13 @@ public:
     State() = default;
 
     // Constructor mainly used to make copies and propagate effects
-    explicit State (State *s){
+    explicit State (const State *s){
         for(const auto& it : s->get_facts()){
             _facts.insert(it->copy_no_pointers() );
         }
     }
 
-	std::unique_ptr<State> copy() {
+	[[nodiscard]] std::unique_ptr<State> copy() const {
         return std::make_unique<State>(this);
 	}
 
@@ -28,21 +28,21 @@ public:
         _facts.insert(std::move(f));
     }
 
-    [[nodiscard]] variables::StateVariable* get_fact(variables::StateVariable* f) const{
+    [[nodiscard]] const variables::StateVariable* get_fact(const variables::StateVariable* f) const{
         auto uf = f->copy_no_pointers(); // make unique fact // ToDo: unnecessary copy of a fact to get their value on a state
         const auto& it = _facts.find(uf);  // find the func(objects) header in s
         if( it == _facts.end() ) return nullptr;
         return (*it).get();
     }
 
-    value_t get_value(variables::StateVariable* f) const{
+    value_t get_value(const variables::StateVariable* f) const{
         /// If the StateVariable exists in s, returns the value in s, otherwise returns 0
         auto it = get_fact(f);
         if( it == nullptr ) return value_t{0}; // if the StateVariable doesn't exist, return 0
         return it->get_value(); // otherwise, return the existing value
     }
 
-   void set_value(variables::StateVariable* f, const value_t& value){
+   void set_value(const variables::StateVariable* f, const value_t& value){
         auto uf = f->copy_no_pointers();  // make unique fact // ToDo: unnecessary copy of a fact to get their value on a state
         const auto& it = _facts.find(uf); // find the func(objects) header in s
         if( it == _facts.end() ) add_fact(std::move(uf) ); // if the fact doesn't exist, create it // ToDo:  do the copy in add_fact
@@ -51,8 +51,8 @@ public:
 
 
     // FIXME (Issue #47): innefficient if used extensively, O(|facts|)
-    [[nodiscard]] std::vector<variables::StateVariable*> get_facts() const{
-        std::vector<variables::StateVariable*> facts;
+    [[nodiscard]] std::vector<const variables::StateVariable*> get_facts() const{
+        std::vector<const variables::StateVariable*> facts;
         for(const auto& f : _facts)
             facts.emplace_back(f.get());
         return facts;

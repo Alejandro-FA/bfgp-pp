@@ -20,7 +20,7 @@ namespace instructions{
             return _dest_line;
         }
 
-        [[nodiscard]] variables::Pointer* get_pointer() const{
+        [[nodiscard]] const variables::Pointer* get_pointer() const{
             return _ptr;
         }
 
@@ -28,12 +28,12 @@ namespace instructions{
             return _mod;
         }
 
-        [[nodiscard]] bool is_applicable(Instance *ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance *ins, const ProgramState *ps) const override{
             /// A FOR instruction is always applicable
             return true;
         }
 
-        value_t apply(Instance *ins, ProgramState* ps ) override{
+        value_t apply(const Instance *ins, ProgramState* ps ) override{
             /// Used only to initialize the pointer variable either to 0 or max index
             auto line = ps->get_line();
             auto var_domain = ins->get_typed_variable_domain(_ptr->get_type()->get_name());
@@ -54,9 +54,9 @@ namespace instructions{
         }
 
     private:
-        variables::Pointer *_ptr;
-        size_t _dest_line;
-        value_t _mod;
+        variables::Pointer* const _ptr;
+        const size_t _dest_line;
+        const value_t _mod;
     };
 }
 

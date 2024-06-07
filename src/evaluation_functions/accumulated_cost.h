@@ -15,7 +15,7 @@ namespace evaluation_functions {
 
         ~AccumulatedCost() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Return the number of steps taken by the current program in the gpp problem
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();

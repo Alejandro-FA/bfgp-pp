@@ -10,7 +10,7 @@
 
 class Domain{
 public:
-	explicit Domain(const std::string &name = "") : _name(name){
+	explicit Domain(std::string name = "") : _name(std::move(name)){
         add_object_type(std::make_unique<ObjectType>("object",nullptr)); // create base "object" type
     }
 
@@ -31,18 +31,18 @@ public:
         _object_types.emplace_back(std::move(ot));
     }
 
-    void add_constant(std::unique_ptr<Object> o){
+    void add_constant(std::unique_ptr<const Object> o){
         _constant_name_to_idx[o->get_name()] = _constants.size();
         _constants.emplace_back(std::move(o));
     }
 
-    void add_function(std::unique_ptr<Function> f){
+    void add_function(std::unique_ptr<const Function> f){
         //_function_name_to_idx[f->get_signature()] = _functions.size();
         _function_name_to_idx[f->get_name()] = _functions.size();
         _functions.emplace_back(std::move(f));
     }
 
-	void add_action(std::unique_ptr<Action> a ){
+	void add_action(std::unique_ptr<const Action> a ){
         _action_name_to_idx[a->get_signature(true)] = _actions.size();
 		_actions.emplace_back(std::move(a));
 	}
@@ -55,77 +55,90 @@ public:
     }
 
     // FIXME (Issue #47): inefficient if used exhaustively, e.g., O(|ObjectTypes|)
-    [[nodiscard]] std::vector<ObjectType*> get_object_types() const{
-        std::vector<ObjectType*> object_types;
+    [[nodiscard]] std::vector<const ObjectType*> get_object_types() const{
+        std::vector<const ObjectType*> object_types;
         for(const auto& ot : _object_types)
             object_types.emplace_back(ot.get());
         return object_types;
     }
 
     // FIXME (Issue #47): inefficient if used exhaustively, e.g., O(|Functions|)
-    [[nodiscard]] std::vector<Function*> get_functions() const{
-        std::vector<Function*> functions;
+    [[nodiscard]] std::vector<const Function*> get_functions() const{
+        std::vector<const Function*> functions;
         for(const auto& f : _functions)
             functions.emplace_back(f.get());
         return functions;
     }
 
     // FIXME (Issue #47): inefficient if used exhaustively, e.g., O(|Actions|)
-    [[nodiscard]] std::vector<Action*> get_actions() const{
-        std::vector<Action*> actions;
+    [[nodiscard]] std::vector<const Action*> get_actions() const{
+        std::vector<const Action*> actions;
         for(const auto& act : _actions)
             actions.emplace_back(act.get());
 		return actions;
 	}
 
-    [[nodiscard]] ObjectType* get_object_type(size_t idx) const{
+    [[nodiscard]] ObjectType* get_object_type(size_t idx) {
         assert(idx < _object_types.size());
         return _object_types[idx].get();
     }
 
-    [[nodiscard]] ObjectType* get_object_type(const std::string& obj_type_name = "") const{
+    // Const overload
+    [[nodiscard]] const ObjectType* get_object_type(size_t idx) const{
+        assert(idx < _object_types.size());
+        return _object_types[idx].get();
+    }
+
+    [[nodiscard]] ObjectType* get_object_type(const std::string& obj_type_name = "") {
         auto it = _object_type_name_to_idx.find(obj_type_name);
         if(it == _object_type_name_to_idx.end() ) return nullptr;
         return get_object_type(it->second);
     }
 
-    [[nodiscard]] Object* get_constant(size_t idx) const{
+    // Const overload
+    [[nodiscard]] const ObjectType* get_object_type(const std::string& obj_type_name = "") const{
+        auto it = _object_type_name_to_idx.find(obj_type_name);
+        if(it == _object_type_name_to_idx.end() ) return nullptr;
+        return get_object_type(it->second);
+    }
+
+    [[nodiscard]] const Object* get_constant(size_t idx) const{
         assert(idx < _constants.size());
         return _constants[idx].get();
     }
 
-    [[nodiscard]] Object* get_constant(const std::string& const_name = "") const{
+    [[nodiscard]] const Object* get_constant(const std::string& const_name = "") const{
         auto it = _constant_name_to_idx.find(const_name);
         if(it == _constant_name_to_idx.end()) return nullptr;
         return get_constant(it->second);
     }
 
     // FIXME (Issue #47): inefficient method
-    [[nodiscard]] std::vector<Object*> get_constants() const{
-        std::vector<Object*> constants;
+    [[nodiscard]] std::vector<const Object*> get_constants() const{
+        std::vector<const Object*> constants;
         for(auto const& c : _constants){
             constants.emplace_back(c.get());
         }
         return constants;
     }
 
-    [[nodiscard]] Function* get_function(size_t idx) const{
+    [[nodiscard]] const Function* get_function(size_t idx) const{
         assert(idx < _functions.size());
         return _functions[idx].get();
     }
 
-    [[nodiscard]] Function* get_function(const std::string& func_name = "") const{
+    [[nodiscard]] const Function* get_function(const std::string& func_name = "") const{
         auto it = _function_name_to_idx.find(func_name);
         if(it == _function_name_to_idx.end()) return nullptr;
         return get_function(it->second);
     }
 	
-	[[nodiscard]] Action* get_action(size_t idx) const{
+	[[nodiscard]] const Action* get_action(size_t idx) const{
         assert(idx < _actions.size());
 		return _actions[idx].get();
 	}
 
-	[[nodiscard]] Action* get_action(const std::string &act_signature = "") const{
+	[[nodiscard]] const Action* get_action(const std::string &act_signature = "") const{
 	    auto it = _action_name_to_idx.find(act_signature );
 	    if( it == _action_name_to_idx.end() ) return nullptr;
 	    return get_action(it->second);
@@ -174,9 +187,9 @@ private:
 
     /// Type hierarchy, Function definitions, and Action schemas
     std::vector<std::unique_ptr<ObjectType>> _object_types;
-    std::vector<std::unique_ptr<Object>> _constants;
-    std::vector<std::unique_ptr<Function>> _functions;
-    std::vector<std::unique_ptr<Action>> _actions;
+    std::vector<std::unique_ptr<const Object>> _constants;
+    std::vector<std::unique_ptr<const Function>> _functions;
+    std::vector<std::unique_ptr<const Action>> _actions;
 
     /// Map symbol names into indexes
     map_str_idx_t _object_type_name_to_idx;

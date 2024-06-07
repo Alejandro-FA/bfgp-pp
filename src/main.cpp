@@ -12,7 +12,7 @@ int main(  int argc, const char* argv[] ){
     stats_info->timers_info("Parsed domain.", "start", "domain");
 
     // Create the Generalized Domain object
-    auto gd(std::move(factories::make_generalized_domain(arg_parser.get(), std::move(dom))));
+    auto gd(factories::make_generalized_domain(arg_parser.get(), std::move(dom)));
     stats_info->add_timer("gd");
     stats_info->timers_info("Generalized Domain created.", "domain", "gd");
 

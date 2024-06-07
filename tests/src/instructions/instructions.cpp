@@ -61,21 +61,21 @@ TEST(Instructions, RAMAndCPPInstructions){
 
     // State variables
     auto sv_at_robby_roomA = std::make_unique<variables::StateVariable>(
-            pred_at_rooby.get(), std::vector<Object*>({obj_ptrs[0]})); // at_robby(roomA)=1
+            pred_at_rooby.get(), std::vector<const Object*>({obj_ptrs[0]})); // at_robby(roomA)=1
     auto sv_at_b1_roomA = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[2],obj_ptrs[0]})); // at(b1,roomA)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[2],obj_ptrs[0]})); // at(b1,roomA)=1
     auto sv_at_b2_roomA = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[3],obj_ptrs[0]})); // at(b2,roomA)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[3],obj_ptrs[0]})); // at(b2,roomA)=1
     auto sv_free_left = std::make_unique<variables::StateVariable>(
-            pred_free.get(), std::vector<Object*>({obj_ptrs[4]}));  // free(left)=1
+            pred_free.get(), std::vector<const Object*>({obj_ptrs[4]}));  // free(left)=1
     auto sv_free_right = std::make_unique<variables::StateVariable>(
-            pred_free.get(), std::vector<Object*>({obj_ptrs[5]}));  // free(right)=1
+            pred_free.get(), std::vector<const Object*>({obj_ptrs[5]}));  // free(right)=1
     auto sv_at_b1_roomB = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[2],obj_ptrs[1]})); // at(b1,roomB)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[2],obj_ptrs[1]})); // at(b1,roomB)=1
     auto sv_at_b2_roomB = std::make_unique<variables::StateVariable>(
-            pred_at.get(), std::vector<Object*>({obj_ptrs[3],obj_ptrs[1]})); // at(b2,roomB)=1
+            pred_at.get(), std::vector<const Object*>({obj_ptrs[3],obj_ptrs[1]})); // at(b2,roomB)=1
     auto sv_carry_b1_left = std::make_unique<variables::StateVariable>(
-            pred_carry.get(), std::vector<Object*>({obj_ptrs[2],obj_ptrs[4]})); // carry(b1,left)=1
+            pred_carry.get(), std::vector<const Object*>({obj_ptrs[2],obj_ptrs[4]})); // carry(b1,left)=1
 
     // Create initial state
     auto initial_state = std::make_unique<State>();
@@ -88,10 +88,10 @@ TEST(Instructions, RAMAndCPPInstructions){
 
     // Create goal condition
     auto c_at_b1_roomB = std::make_unique<expressions::conditions::Equals>(
-            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<Object*>({obj_ptrs[2], obj_ptrs[1]})),
+            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<const Object*>({obj_ptrs[2], obj_ptrs[1]})),
             std::make_unique<variables::ConstantValue>(value_t{1}));
     auto c_at_b2_roomB = std::make_unique<expressions::conditions::Equals>(
-            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<Object*>({obj_ptrs[3], obj_ptrs[1]})),
+            std::make_unique<variables::StateVariable>(pred_at.get(), std::vector<const Object*>({obj_ptrs[3], obj_ptrs[1]})),
             std::make_unique<variables::ConstantValue>(value_t{1}));
     instance->add_goal_condition(std::move(c_at_b1_roomB));
     instance->add_goal_condition(std::move(c_at_b2_roomB));

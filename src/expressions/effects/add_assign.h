@@ -15,22 +15,22 @@ namespace expressions::effects {
                            std::unique_ptr<variables::Variable> rhs = nullptr) :
                 Effect("+=", std::move(lhs), std::move(rhs)) {}
 
-        explicit AddAssign(AddAssign* eff):
+        explicit AddAssign(const AddAssign* eff):
                 Effect(eff->get_operator_name(),
-                       std::move(eff->get_lhs()->copy_var()),
-                       std::move(eff->get_rhs()->copy_var())){}
+                       eff->get_lhs()->copy_var(),
+                       eff->get_rhs()->copy_var()){}
 
         ~AddAssign() override = default;
 
-        [[nodiscard]] std::unique_ptr<Expression> copy_expression() override{
+        [[nodiscard]] std::unique_ptr<Expression> copy_expression() const override{
             return std::make_unique<AddAssign>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<Effect> copy_effect() override{
+        [[nodiscard]] std::unique_ptr<Effect> copy_effect() const override{
             return std::make_unique<AddAssign>(this);
         }
 
-        value_t get_effect(State* s) const override {
+        value_t get_effect(const State* s) const override {
             /// +=. returns the addition between two state variables
             auto l_value = get_value(_lhs.get(), s);
             auto r_value = get_value(_rhs.get(), s);

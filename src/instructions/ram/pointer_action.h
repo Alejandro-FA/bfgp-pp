@@ -19,12 +19,12 @@ namespace instructions{
 
         ~PointerAction() override = default;
 
-        [[nodiscard]] bool is_applicable(Instance* ins, ProgramState *ps ) const override{
+        [[nodiscard]] bool is_applicable(const Instance* ins, const ProgramState *ps ) const override{
             // By default, the instruction is applicable
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             // By default, it returns a 0 value
             ps->set_line(ps->get_line()+1);
             return value_t{0};
@@ -41,8 +41,8 @@ namespace instructions{
             return _name + "(" + utils::join(ptr_names, ",") + ")";
         }
 
-        [[nodiscard]] std::vector<variables::Pointer*> get_pointers() const{
-            return _pointers;
+        [[nodiscard]] std::vector<const variables::Pointer*> get_pointers() const{
+            return {_pointers.cbegin(), _pointers.cend()};
         }
 
         [[nodiscard]] std::string to_string(bool full_info ) const override {
@@ -50,7 +50,7 @@ namespace instructions{
         }
 
     protected:
-        std::vector<variables::Pointer*> _pointers;
+        const std::vector<variables::Pointer*> _pointers;
     };
 }
 

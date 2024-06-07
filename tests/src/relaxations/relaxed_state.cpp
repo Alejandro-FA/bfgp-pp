@@ -40,7 +40,7 @@ TEST(RelaxedStateTests, RelaxedStates){
     /// 1.a Test if vector(p2)=2 exists in rs (true)
     auto func_vector = gpp->get_generalized_domain()->get_domain()->get_function("vector");
     auto objects = gpp->get_instance(0)->get_raw_objects();
-    auto vec_objs = std::vector<Object*>({objects[2]});
+    auto vec_objs = std::vector<const Object*>({objects[2]});
     auto sv = std::make_unique<variables::StateVariable>(func_vector, vec_objs, value_t(2));
     EXPECT_TRUE(rs->has_fact(sv.get()));
     /// 1.b Test if vector(p2)=3 exists in rs (false)

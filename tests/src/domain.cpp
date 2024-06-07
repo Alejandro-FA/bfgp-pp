@@ -33,19 +33,19 @@ TEST(Domain, ArbitraryDomain){
     // Create state variables
     auto sv_holding_obj =
             std::make_unique<variables::StateVariable>(pred_holding.get(),
-                                            std::vector<Object *>({param_b.get()}),
+                                            std::vector<const Object *>({param_b.get()}),
                                             value_t{1});
     auto sv_handempty =
             std::make_unique<variables::StateVariable>(pred_handempty.get(),
-                                            std::vector<Object *>({}),
+                                            std::vector<const Object *>({}),
                                             value_t{1} );
     auto sv_ontable_obj =
             std::make_unique<variables::StateVariable>(pred_ontable.get(),
-                                            std::vector<Object *>({param_b.get()}),
+                                            std::vector<const Object *>({param_b.get()}),
                                             value_t{1});
     auto sv_clear_obj =
             std::make_unique<variables::StateVariable>(pred_clear.get(),
-                                            std::vector<Object *>({param_b.get()}),
+                                            std::vector<const Object *>({param_b.get()}),
                                             value_t{1});
 
     // Create constant values

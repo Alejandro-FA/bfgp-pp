@@ -41,9 +41,9 @@ namespace theory{
             /// 3.(PRE) ActionSchemas has a fix upperbound of program lines, so fix it here (right before IFs):
             size_t n_test_ins = 0u, n_set_ins = 0u;
             for(const auto& ins : gd->get_instructions()){
-                auto test_ins = dynamic_cast<instructions::RegisterTest*>(ins);
+                auto test_ins = dynamic_cast<const instructions::RegisterTest*>(ins);
                 if(test_ins){++n_test_ins; continue;}
-                auto set_ins = dynamic_cast<instructions::RegisterSet*>(ins);
+                auto set_ins = dynamic_cast<const instructions::RegisterSet*>(ins);
                 if(set_ins){++n_set_ins;}
             }
             // Upper bound in program lines = 1 + 2 * TEST + 1/2 * SET; since there is at least one END instruction,
@@ -59,8 +59,8 @@ namespace theory{
 
         static std::vector<value_t> evaluate_test_instruction(GeneralizedDomain *gd,
                                                               instructions::Instruction *instruction,
-                                                              Program *prog,
-                                                              Instance *instance){
+                                                              const Program *prog,
+                                                              const Instance *instance){
             auto ps = prog->make_program_state(gd, instance->get_initial_state());
             prog->reset_program_state(ps.get(), instance, true);
             auto res = instruction->apply(instance, ps.get());
@@ -71,15 +71,15 @@ namespace theory{
             return flag_res;
         }
 
-        [[nodiscard]] bool check_syntax_constraints(Program *p, size_t program_line, instructions::Instruction *new_ins) override{
+        [[nodiscard]] bool check_syntax_constraints(const Program *p, size_t program_line, const instructions::Instruction *new_ins) override{
             /// 0. END constraints
-            auto ins_end = dynamic_cast<instructions::End*>(new_ins);
+            auto ins_end = dynamic_cast<const instructions::End*>(new_ins);
             if(ins_end){
                 /// If it is the last line, then it must be programmed
                 if(program_line+1 == p->get_num_instructions()) return true;
                 /// In any other case, it must be programmed after a SET instruction
                 if(program_line>0) {
-                    auto prev_ins_set = dynamic_cast<instructions::RegisterSet *>(p->get_instruction(program_line - 1));
+                    auto prev_ins_set = dynamic_cast<const instructions::RegisterSet *>(p->get_instruction(program_line - 1));
                     if(prev_ins_set) return true;
                 }
                 /// Otherwise is wrong
@@ -87,7 +87,7 @@ namespace theory{
             }
 
             /// 1. IF syntactic constraints
-            auto ins_if = dynamic_cast<instructions::If*>(new_ins);
+            auto ins_if = dynamic_cast<const instructions::If*>(new_ins);
 
             /// 1.a if the previous instruction is TEST, the current instruction must be an IF
             bool is_prev_cond = (program_line>0) and p->get_instruction(program_line-1)->is_conditional();
@@ -116,11 +116,11 @@ namespace theory{
                 /// 2.b Last 4 lines cannot be used by a conditional
                 if(program_line + 4 >= p->get_num_instructions()) return false;
                 /// 2.c In any other case the previous instruction must be an IF
-                auto prev_ins_if = dynamic_cast<instructions::If*>(p->get_instruction(program_line-1));
+                auto prev_ins_if = dynamic_cast<const instructions::If*>(p->get_instruction(program_line-1));
                 if(prev_ins_if == nullptr) return false;
                 /// 2.d Explore TEST instructions in lexicographically ascending order
                 for(size_t line=0;line<program_line;line++){
-                    auto prev_ins_test = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(line));
+                    auto prev_ins_test = dynamic_cast<const instructions::RegisterTest*>(p->get_instruction(line));
                     if(prev_ins_test and prev_ins_test->get_id() >= new_ins->get_id()){
                         return false;
                     }
@@ -129,7 +129,7 @@ namespace theory{
             }
 
             /// 3. SET constraints
-            auto ins_set_reg = dynamic_cast<instructions::RegisterSet*>(new_ins);
+            auto ins_set_reg = dynamic_cast<const instructions::RegisterSet*>(new_ins);
             if(ins_set_reg){
                 auto current_name = ins_set_reg->get_name(false);
                 auto current_fact_name = ins_set_reg->get_fact_name(false);
@@ -137,15 +137,15 @@ namespace theory{
                 if(program_line < 2) return false;
                 /// 3.b Previous instruction must be either an IF or SET
                 auto prev_ins = p->get_instruction(program_line-1);
-                auto prev_ins_if = dynamic_cast<instructions::If*>(prev_ins);
-                auto prev_ins_set = dynamic_cast<instructions::RegisterSet*>(prev_ins);
+                auto prev_ins_if = dynamic_cast<const instructions::If*>(prev_ins);
+                auto prev_ins_set = dynamic_cast<const instructions::RegisterSet*>(prev_ins);
                 if(prev_ins_if == nullptr and prev_ins_set == nullptr) return false;
 
                 /// (OLD) 3.c If the previous instruction is a SET, check that the modified fact is different
                 //if(prev_ins_set and prev_ins_set->get_fact_name(false) == current_fact_name) return false;
                 /// 3.c The current_fact_name must be different from any previous SET
                 for(size_t prev_line = program_line-1; prev_line > 0; --prev_line){
-                    prev_ins_set = dynamic_cast<instructions::RegisterSet*>(p->get_instruction(prev_line));
+                    prev_ins_set = dynamic_cast<const instructions::RegisterSet*>(p->get_instruction(prev_line));
                     if(prev_ins_set == nullptr) break;
                     if(prev_ins_set->get_fact_name(false) == current_fact_name) return false;
                 }
@@ -177,7 +177,7 @@ namespace theory{
         [[nodiscard]] bool check_semantic_constraints(GeneralizedPlanningProblem *gpp, Program *p, size_t program_line,
                                                       instructions::Instruction *new_ins) override{
             /// 1. TEST semantic constraints
-            auto ins_test = dynamic_cast<instructions::RegisterTest*>(new_ins);
+            auto ins_test = dynamic_cast<const instructions::RegisterTest*>(new_ins);
             if(ins_test){
                 /// 1.a. The new instruction can only use pointers of the action in init (inefficient)
                 auto ptrs_new_ins = ins_test->get_pointers();
@@ -215,7 +215,7 @@ namespace theory{
             }
 
             /// 2. If it is an IF, it must ZF=0 if all instances agree on TRUE, and ZF=1 if all instances agree on FALSE
-            auto ins_if = dynamic_cast<instructions::If*>(new_ins);
+            auto ins_if = dynamic_cast<const instructions::If*>(new_ins);
             if(ins_if){
                 assert(program_line > 0);
                 auto prev_test_ins = dynamic_cast<instructions::RegisterTest*>(p->get_instruction(program_line-1));

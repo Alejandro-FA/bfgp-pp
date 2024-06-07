@@ -15,14 +15,14 @@ namespace evaluation_functions {
 
         ~LoopLinesCounter() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Counting number of times lines are covered by loops of a program
             value_t line_counter = 0;
             auto instructions = p->get_instructions();
             for (size_t i = 0; i < instructions.size(); i++) {
-                auto f = dynamic_cast<instructions::For*>(instructions[i]);
+                auto f = dynamic_cast<const instructions::For*>(instructions[i]);
                 if (f) line_counter += value_t(1+f->get_destination_line() - i);
-                auto g = dynamic_cast<instructions::Goto*>(instructions[i]);
+                auto g = dynamic_cast<const instructions::Goto*>(instructions[i]);
                 if(g and g->get_destination_line()<i) line_counter += value_t(1+i-g->get_destination_line());
             }
             return -line_counter;

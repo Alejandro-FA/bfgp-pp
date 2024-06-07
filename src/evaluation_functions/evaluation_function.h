@@ -11,7 +11,7 @@ namespace evaluation_functions {
     class EvaluationFunction {
         /// Base class for evaluation functions with a default "trivial heuristic" (th)
     public:
-        explicit EvaluationFunction(const std::string &name = "th") : _name(name) {}
+        explicit EvaluationFunction(std::string name = "th") : _name(std::move(name)) {}
 
         virtual ~EvaluationFunction() = default;
 
@@ -20,12 +20,12 @@ namespace evaluation_functions {
         }
 
         // Program-based or Performance-based heuristic
-        virtual value_t compute(Program *p, GeneralizedPlanningProblem *gpp) {
+        virtual value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) {
             return 0;
         }
 
     private:
-        std::string _name;
+        const std::string _name;
     };
 }
 

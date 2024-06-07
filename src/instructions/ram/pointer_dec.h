@@ -10,15 +10,15 @@
 namespace instructions {
     class PointerDec : public PointerAction {
     public:
-        PointerDec(variables::Pointer* ptr) : PointerAction("dec",{ptr}){}
-        ~PointerDec() = default;
+        explicit PointerDec(variables::Pointer* ptr) : PointerAction("dec",{ptr}){}
+        ~PointerDec() override = default;
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             // There must be just one pointer in the class
             return _pointers[0]->get_value() > 0;
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             // There must be just one pointer in the class
             value_t new_value = is_applicable(ins, ps) ? _pointers[0]->get_value() - 1 : value_t{0};
             _pointers[0]->set_value(new_value);

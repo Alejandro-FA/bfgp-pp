@@ -12,12 +12,12 @@ namespace instructions {
         /// Returns the difference between the first and second fact values after interpreting pointers.
         /// The func_names are the same, but pointers are different.
     public:
-        RegisterCmp(Function *f,
-                    const std::vector<variables::Pointer*> &pointers1,
-                    const std::vector<variables::Pointer*> &pointers2) :
+        RegisterCmp(const Function *f,
+                    const std::vector<const variables::Pointer*> &pointers1,
+                    const std::vector<const variables::Pointer*> &pointers2) :
                         RegisterAction("cmp", f, pointers1), _pointers2(pointers2){}
 
-        [[nodiscard]] bool is_applicable(Instance *ins, ProgramState *ps) const override{
+        [[nodiscard]] bool is_applicable(const Instance *ins, const ProgramState *ps) const override{
             // Always true by default
             return true;
         }
@@ -26,10 +26,10 @@ namespace instructions {
             return true;
         }
 
-        [[nodiscard]] value_t apply(Instance *ins, ProgramState *ps) override{
+        [[nodiscard]] value_t apply(const Instance *ins, ProgramState *ps) override{
             ps->set_line(ps->get_line()+1);
             auto state = ps->get_state();
-            std::vector<Object*> objs1, objs2;
+            std::vector<const Object*> objs1, objs2;
             for(const auto& p : _pointers) objs1.emplace_back(p->get_object());
             for(const auto& p : _pointers2) objs2.emplace_back(p->get_object());
             auto fact1 = std::make_unique<variables::StateVariable>(_f, objs1);
@@ -52,7 +52,7 @@ namespace instructions {
 
 
     protected:
-        std::vector<variables::Pointer*> _pointers2;
+        const std::vector<const variables::Pointer*> _pointers2;
     };
 }
 #endif //__INSTRUCTIONS_RAM_REGISTER_CMP_H__

@@ -10,10 +10,10 @@
 namespace instructions {
     class PointerInc : public PointerAction {
     public:
-        PointerInc(variables::Pointer* ptr) : PointerAction("inc",{ptr}){}
-        ~PointerInc() = default;
+        explicit PointerInc(variables::Pointer* ptr) : PointerAction("inc",{ptr}){}
+        ~PointerInc() override = default;
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             // There must be just one pointer in the class
             //auto ptr = ps->get_pointer(_pointers[0]->get_name());
             //assert(ptr != nullptr);
@@ -21,7 +21,7 @@ namespace instructions {
                         ins->get_typed_variable_domain(_pointers[0]->get_type()->get_name());
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             // There must be just one pointer in the class
             value_t new_value;
             if(is_applicable(ins, ps)) {

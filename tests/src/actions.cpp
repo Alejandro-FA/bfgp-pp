@@ -32,19 +32,19 @@ TEST(Actions, GroundedAction){
     // Create state variables
     auto sv_holding_obj =
             std::make_unique<variables::StateVariable>(pred_holding.get(),
-                                                       std::vector<Object *>({obj_b1.get()}),
+                                                       std::vector<const Object *>({obj_b1.get()}),
                                                        value_t{1});
     auto sv_handempty =
             std::make_unique<variables::StateVariable>(pred_handempty.get(),
-                                                       std::vector<Object *>({}),
+                                                       std::vector<const Object *>({}),
                                                        value_t{1} );
     auto sv_ontable_obj =
             std::make_unique<variables::StateVariable>(pred_ontable.get(),
-                                                       std::vector<Object *>({obj_b1.get()}),
+                                                       std::vector<const Object *>({obj_b1.get()}),
                                                        value_t{1});
     auto sv_clear_obj =
             std::make_unique<variables::StateVariable>(pred_clear.get(),
-                                                       std::vector<Object *>({obj_b1.get()}),
+                                                       std::vector<const Object *>({obj_b1.get()}),
                                                        value_t{1});
 
     // Create constant values
@@ -77,8 +77,8 @@ TEST(Actions, GroundedAction){
     state->add_fact(sv_handempty->copy());
     state->add_fact(sv_clear_obj->copy());
     state->add_fact(sv_ontable_obj->copy());
-    state->add_fact(std::make_unique<variables::StateVariable>(pred_clear.get(),std::vector<Object*>({obj_b2.get()}),value_t{1}));
-    state->add_fact(std::make_unique<variables::StateVariable>(pred_ontable.get(),std::vector<Object*>({obj_b2.get()}),value_t{1}));
+    state->add_fact(std::make_unique<variables::StateVariable>(pred_clear.get(),std::vector<const Object*>({obj_b2.get()}),value_t{1}));
+    state->add_fact(std::make_unique<variables::StateVariable>(pred_ontable.get(),std::vector<const Object*>({obj_b2.get()}),value_t{1}));
     EXPECT_STREQ("[STATE]: (clear(b1)=1) (clear(b2)=1) (handempty()=1) (ontable(b1)=1) (ontable(b2)=1)", state->to_string(true).c_str());
 
     // Test applicability of act on state

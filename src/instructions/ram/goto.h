@@ -21,16 +21,16 @@ namespace instructions{
             /// Add a new condition to the GOTO
             _conds.emplace_back(std::move(cond));
         }*/
-        void add_cond(variables::Flag* flag, value_t expected_val){
-            _conds.emplace_back(std::make_pair(flag, expected_val));
+        void add_cond(const variables::Flag* flag, value_t expected_val){
+            _conds.emplace_back(flag, expected_val);
         }
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             /// A GOTO instruction is always applicable
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState* ps ) override{
+        value_t apply(const Instance* ins, ProgramState* ps ) override{
             //auto s = ps->get_state();
             auto line = ps->get_line();
             //bool eval = std::all_of(_conds.begin(), _conds.end(),
@@ -64,8 +64,8 @@ namespace instructions{
         }
 
     private:
-        size_t _dest_line;
-        std::vector<std::pair<variables::Flag*,value_t>> _conds;  // (flag1=value1)&(flag2=value2)&...
+        const size_t _dest_line;
+        std::vector<std::pair<const variables::Flag*,value_t>> _conds;  // (flag1=value1)&(flag2=value2)&...
     };
 }
 

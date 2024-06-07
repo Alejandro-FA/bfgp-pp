@@ -15,7 +15,7 @@ namespace evaluation_functions {
 
         ~DistanceToLastLine() override = default;
 
-        value_t compute(Program *p, GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
             /// Return the minimum distance to last line for all non-terminated
             /// program executions, otherwise is 0
             //auto vps = p->run( gpp );

@@ -11,14 +11,14 @@ namespace instructions {
     class PointerSet : public PointerAction {
     public:
         PointerSet(variables::Pointer* ptr1, variables::Pointer* ptr2) : PointerAction("set",{ptr1,ptr2}){}
-        ~PointerSet() = default;
+        ~PointerSet() override = default;
 
-        bool is_applicable(Instance* ins, ProgramState *ps) const override{
+        bool is_applicable(const Instance* ins, const ProgramState *ps) const override{
             // It is always applicable
             return true;
         }
 
-        value_t apply(Instance* ins, ProgramState *ps ) override{
+        value_t apply(const Instance* ins, ProgramState *ps ) override{
             // There must be two pointers in the class, and they are not update but just the difference is returned
             _pointers[0]->set_value(_pointers[1]->get_value());
             _pointers[0]->set_object(_pointers[1]->get_object());

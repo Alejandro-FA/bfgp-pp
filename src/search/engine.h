@@ -9,9 +9,7 @@
 namespace search{
 class Engine{
 public:
-	Engine( std::unique_ptr<GeneralizedPlanningProblem> gpp ) :
-            _evaluated_nodes(0), _expanded_nodes(0), _gpp(std::move(gpp)), _verbose(false){
-    };
+	explicit Engine( std::unique_ptr<GeneralizedPlanningProblem> gpp ) : _gpp(std::move(gpp)) {};
 
     /// Owns _evaluation_functions and _gpp
 	virtual ~Engine() = default;
@@ -25,7 +23,7 @@ public:
     [[nodiscard]] virtual std::shared_ptr<Node> select_node() = 0;
 	
 	// Check if goal conditions hold in the current Node
-    [[nodiscard]] virtual bool is_goal(Node* node, bool run_program=false) = 0;
+    [[nodiscard]] virtual bool is_goal(Node* node, bool run_program, bool only_active_instances) = 0;
 	
 	// Expand the current Node, adding all non-visited childs
 	virtual std::vector<std::shared_ptr<Node>> expand_node(Node* node) = 0;
@@ -37,7 +35,7 @@ public:
 	//virtual vec_value_t h(Node* node) = 0;
 
 	// evaluation functions
-	virtual vec_value_t f(Node* node) = 0;
+	virtual vec_value_t f(const Node* node) const = 0;
 	
 	// Solve the problem starting from init Node
 	virtual std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) = 0;
@@ -65,11 +63,11 @@ public:
 		return _evaluated_nodes;
 	}
 
-    [[nodiscard]] GeneralizedPlanningProblem* get_generalized_planning_problem() const{
+    [[nodiscard]] const GeneralizedPlanningProblem* get_generalized_planning_problem() const{
         return _gpp.get();
     }
 
-    [[nodiscard]] theory::Theory* get_theory() const{
+    [[nodiscard]] const theory::Theory* get_theory() const{
         return _theory.get();
     }
 
@@ -78,12 +76,12 @@ public:
     }
 	
 protected:
-	value_t _evaluated_nodes;
-	value_t _expanded_nodes;
+	value_t _evaluated_nodes = 0;
+	value_t _expanded_nodes = 0;
     std::vector<std::unique_ptr<evaluation_functions::EvaluationFunction>> _evaluation_functions;
 	std::unique_ptr<GeneralizedPlanningProblem> _gpp;
     std::unique_ptr<theory::Theory> _theory;
-    bool _verbose;
+    bool _verbose = false;
 };
 
 }

@@ -13,22 +13,22 @@ namespace expressions::conditions  {
                 Expression(operator_name, std::move(lhs), std::move(rhs)) {
         }
 
-        explicit Condition(Condition *prec) :
+        explicit Condition(const Condition *prec) :
                 Expression(prec->get_operator_name(),
-                           std::move(prec->get_lhs()->copy_var()),
-                           std::move(prec->get_rhs()->copy_var())){}
+                           prec->get_lhs()->copy_var(),
+                           prec->get_rhs()->copy_var()){}
 
         ~Condition() override = default;
 
-        [[nodiscard]] std::unique_ptr<Expression> copy_expression() override{
+        [[nodiscard]] std::unique_ptr<Expression> copy_expression() const override{
             return std::make_unique<Condition>(this);
         }
 
-        [[nodiscard]] virtual std::unique_ptr<Condition> copy_condition(){
+        [[nodiscard]] virtual std::unique_ptr<Condition> copy_condition() const{
             return std::make_unique<Condition>(this);
         }
 
-        virtual bool eval_condition(State *s) const {
+        virtual bool eval_condition(const State *s) const {
             return true;
         }
 

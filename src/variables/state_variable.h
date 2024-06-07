@@ -9,12 +9,13 @@
 #include "../function.h"
 #include "../object.h"
 #include "pointer.h"
+#include "../utils/common.h"
 
 namespace variables {
     class StateVariable : public Variable {
     public:
         /// Constructor for state variables with object parameters (no pointers)
-        explicit StateVariable(Function *function, const std::vector<Object *> &objects,
+        explicit StateVariable(const Function *function, const std::vector<const Object *> &objects,
                                const value_t &value = value_t{1}) :
                 Variable("", value), _function(function), _objects(objects) {
             // Set the "complex" name var
@@ -30,7 +31,7 @@ namespace variables {
         };
 
         /// Copy constructor
-        explicit StateVariable(StateVariable* fact) :
+        explicit StateVariable(const StateVariable* fact) :
                 Variable("", fact->get_value()),
                 _function(fact->get_function()),
                 _pointers(fact->get_pointers()),
@@ -54,16 +55,16 @@ namespace variables {
         ~StateVariable() override = default;
 
         // ToDo: test in state_variable.cpp
-        [[nodiscard]] std::unique_ptr<Variable> copy_var() override{
+        [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
             return std::make_unique<StateVariable>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<StateVariable> copy(){
+        [[nodiscard]] std::unique_ptr<StateVariable> copy() const {
             return std::make_unique<StateVariable>(this);
         }
 
-        [[nodiscard]] std::unique_ptr<StateVariable> copy_no_pointers(){
-            std::vector<Object*> objects;
+        [[nodiscard]] std::unique_ptr<StateVariable> copy_no_pointers() const{
+            std::vector<const Object*> objects;
             if(not _pointers.empty()){
                 for(const auto& p : _pointers)
                     objects.emplace_back(p->get_object());
@@ -72,20 +73,20 @@ namespace variables {
             return std::make_unique<StateVariable>(_function, objects, _value);
         }
 
-        void set_pointer_references(const std::vector<Variable*> &pointers) override{
+        void set_pointer_references(const std::vector<const Variable*> &pointers) override{
             /// Downcast Variable pointers to Pointer pointers
             _pointers.clear();
             _pointers.reserve(_objects.size());
             for(const auto& o : _objects){
                 auto idx = o->get_id(); // parameter index
                 assert(idx < (id_type)pointers.size());
-                auto ptr = dynamic_cast<Pointer*>(pointers[idx]);
+                auto ptr = dynamic_cast<const Pointer*>(pointers[idx]);
                 assert(ptr != nullptr);
                 _pointers.emplace_back(ptr);
             }
         }
 
-        void update_object_references(const std::vector<Object*> &new_obj_refs ) override{
+        void update_object_references(const std::vector<const Object*> &new_obj_refs ) override{
             /// Useful for grounding lifted state variables, where object ids represent their indexes in
             /// the list of action parameters, and each is substituted by the current object in that location
             for(size_t pos=0; pos<_objects.size(); pos++){
@@ -94,20 +95,20 @@ namespace variables {
             }
         }
 
-        void set_object(Object *obj, size_t pos){
+        void set_object(const Object *obj, size_t pos){
             assert(pos < _objects.size());
             _objects[pos] = obj;
         }
 
-        [[nodiscard]] Function *get_function() const {
+        [[nodiscard]] const Function *get_function() const {
             return _function;
         }
 
-        [[nodiscard]] std::vector<Object *> get_objects() const {
+        [[nodiscard]] std::vector<const Object *> get_objects() const {
             return _objects;
         }
 
-        [[nodiscard]] std::vector<Pointer*> get_pointers() const{
+        [[nodiscard]] std::vector<const Pointer*> get_pointers() const{
             return _pointers;
         }
 
@@ -157,10 +158,10 @@ namespace variables {
         }
 
     private:
-        Function *_function;  // function symbol that maps objects into a value in the domain of T
+        const Function *_function;  // function symbol that maps objects into a value in the domain of T
         /// Function parameters might be pointers or objects (but not both!)
-        std::vector<Pointer*> _pointers; // vector of pointers (e.g., ptr_block:block)
-        std::vector<Object*> _objects;  // vector of object (e.g., params of type ?b:block, or instance objects b1:block)
+        std::vector<const Pointer*> _pointers; // vector of pointers (e.g., ptr_block:block)
+        std::vector<const Object*> _objects;  // vector of object (e.g., params of type ?b:block, or instance objects b1:block)
 
         /// Extra variable to speed up FactComparer (Issue #47)
         vec_id_t _objects_ids;
@@ -173,8 +174,18 @@ namespace variables {
             return std::tie(lhs->get_function()->get_id(), lhs->get_objects_ids()) <
                     std::tie(rhs->get_function()->get_id(), rhs->get_objects_ids());
         }*/
-        // ToDo: 3-way comparison should improve these results (less calls to functions)
+        bool operator()(const std::unique_ptr<const StateVariable> &lhs, const std::unique_ptr<const StateVariable> &rhs) const {
+            return impl(lhs, rhs);
+        }
+
         bool operator()(const std::unique_ptr<StateVariable> &lhs, const std::unique_ptr<StateVariable> &rhs) const {
+            return impl(lhs, rhs);
+        }
+
+    private:
+        // ToDo: 3-way comparison should improve these results (less calls to functions)
+        template<SameOrConst<StateVariable> T>
+        [[nodiscard]] bool impl(const std::unique_ptr<T> &lhs, const std::unique_ptr<T> &rhs) const {
             if (lhs->get_function()->get_id() > rhs->get_function()->get_id()) return false;
             if (lhs->get_function()->get_id() < rhs->get_function()->get_id()) return true;
             if (lhs->get_objects_ids() > rhs->get_objects_ids()) return false;

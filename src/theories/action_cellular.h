@@ -56,7 +56,7 @@ namespace theory{
             ifs->make_ifs(grounder.get(), gd);
         }
 
-        void get_program_template(size_t program_lines){
+        void get_program_template(size_t program_lines) {
             _instruction_names = std::vector<std::string> {
                     "for(ptr_object_0++," + std::to_string(program_lines-2)+")",
                     "set(ptr_object_1,ptr_object_0)",
@@ -104,7 +104,7 @@ namespace theory{
             _instruction_names.emplace_back("end");
         }
 
-        void set_initial_program(GeneralizedPlanningProblem *gpp, Program *p){
+        void set_initial_program(GeneralizedPlanningProblem *gpp, Program *p) override {
             /// Minimum program example (>9 program lines):
             /// 0. FOR;
             /// 1. z2=z1; 2. z2--;
@@ -123,9 +123,9 @@ namespace theory{
             }
         }
 
-        [[nodiscard]] bool check_syntax_constraints(Program *p, size_t program_line, instructions::Instruction *new_ins) override {
+        [[nodiscard]] bool check_syntax_constraints(const Program *p, size_t program_line, const instructions::Instruction *new_ins) override {
             /// 1. Only SET(register) are programmable in this theory
-            auto ins_set = dynamic_cast<instructions::RegisterSet*>(new_ins);
+            auto ins_set = dynamic_cast<const instructions::RegisterSet*>(new_ins);
             if(ins_set) return true;
 
             /// 2. Check if the instruction already exists from the initial program
@@ -146,7 +146,7 @@ namespace theory{
                 return true;
 
             /// 1. It must be a set, and only ptr_object_0 is writable
-            auto ins_set = dynamic_cast<instructions::RegisterSet*>(new_ins);
+            auto ins_set = dynamic_cast<const instructions::RegisterSet*>(new_ins);
             assert(ins_set != nullptr); // checked in syntax
             auto ptrs = ins_set->get_pointers();
             if(ptrs.size() != 1u) return false;
