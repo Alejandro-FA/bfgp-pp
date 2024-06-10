@@ -16,22 +16,22 @@ public:
         _name(std::move(name)), _action_type(act_type){}
 
     /// Constructor to copy action data from another action
-    explicit Action(const Action *a): Action(a->get_name(), a->get_type()){
+    Action(const Action &a): _name{a.get_name()}, _action_type{a.get_type()}, _pointer_parameters{a._pointer_parameters} {
         // Copy params
         std::vector<const Object*> params;
-        for(const auto& par : a->get_parameters()) {
+        for(const auto& par : a.get_parameters()) {
             auto par_copy = par->copy();
             params.emplace_back(par_copy.get());
             _parameters.emplace_back(std::move(par_copy));
         }
         // Copy preconditions
-        for(const auto& prec : a->get_preconditions()) {
+        for(const auto& prec : a.get_preconditions()) {
             auto prec_copy = prec->copy_condition();
             prec_copy->update_object_references(params);
             _preconditions.emplace_back(std::move(prec_copy));
         }
         // Copy effects
-        for(const auto& eff : a->get_effects()) {
+        for(const auto& eff : a.get_effects()) {
             auto eff_copy = eff->copy_effect();
             eff_copy->update_object_references(params);
             _effects.emplace_back(std::move(eff_copy));
@@ -85,11 +85,17 @@ public:
         }
     }
 
+    Action& operator=(const Action &a) = delete;
+
+    Action(Action &&a) noexcept = default;
+
+    Action& operator=(Action &&a) noexcept = delete;
+
     /// Owns _preconditions and _effects
 	virtual ~Action() = default;
 
     [[nodiscard]] std::unique_ptr<Action> copy() const{
-        return std::make_unique<Action>(this);
+        return std::make_unique<Action>(*this);
     }
 
     [[nodiscard]] std::unique_ptr<Action> copy_with_substitution(const std::vector<const Object*> &objects) const{

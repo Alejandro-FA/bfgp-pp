@@ -11,22 +11,24 @@ namespace variables {
     class ZeroFlag : public Flag {
     public:
         ZeroFlag() : Flag("zf") {}
-        explicit ZeroFlag(const ZeroFlag *zf) : Flag(zf->get_name()) {}
 
         ~ZeroFlag() override = default;
 
         // ToDo: test this method
         [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
-            return std::make_unique<ZeroFlag>(this);
+            return std::unique_ptr<ZeroFlag>(new ZeroFlag(*this));
         }
 
         [[nodiscard]] std::unique_ptr<ZeroFlag> copy() const{
-            return std::make_unique<ZeroFlag>(this);
+            return std::unique_ptr<ZeroFlag>(new ZeroFlag(*this));
         }
 
         void set_value(const value_t &res) override {
             _value = (res == 0);
         }
+
+    protected:
+        ZeroFlag(const ZeroFlag &zf) : Flag(zf.get_name()) {}
     };
 }
 

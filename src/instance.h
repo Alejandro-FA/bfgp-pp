@@ -17,8 +17,32 @@ public:
             }
     }
 
-    /// Owns _objects, _init and _goal
-	~Instance() = default;
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
+    Instance(const Instance &ins)
+        : _domain{ins._domain}, _name{ins._name}, _init{ins._init->copy()}, _goal_state{ins._goal_state->copy()},
+        _type_to_objs{ins._type_to_objs}, _obj_to_idx{ins._obj_to_idx}, _typed_obj_to_idx{ins._typed_obj_to_idx},
+        _instance_id{ins._instance_id} {
+        for(const auto& obj : ins._objects) _objects.emplace_back(obj->copy());
+        for(const auto& g : ins._goal) _goal.emplace_back(g->copy_condition());
+    }
+
+    Instance& operator=(const Instance &ins) {
+        auto tmp{ins};
+        std::swap(*this, tmp);
+        return *this;
+    }
+
+    Instance(Instance &&ins) noexcept = default;
+
+    Instance& operator=(Instance &&ins) noexcept = default;
+
+	~Instance() = default; // Owns _objects, _init and _goal
+    /// End of Rule of five
+
+    [[nodiscard]] std::unique_ptr<Instance> copy() const {
+        return std::make_unique<Instance>(*this);
+    }
 
     /// Setters
 	void set_name(const std::string &name = ""){
@@ -176,7 +200,7 @@ private:
     std::vector<std::unique_ptr<const Object>> _objects;
 	std::unique_ptr<State> _init;
     std::vector< std::unique_ptr<const expressions::conditions::Condition> > _goal;
-    const std::unique_ptr<State> _goal_state; // Only in closed-world settings
+    std::unique_ptr<State> _goal_state; // Only in closed-world settings
 
     /// Fast type and object access
     std::map< std::string, std::vector<const Object*> > _type_to_objs; // object type name -> vector of object pointers
@@ -184,7 +208,7 @@ private:
     std::map< std::string, size_t> _typed_obj_to_idx;  // object name -> index in _typed_to_objs
  
     /// Instance id
-    const id_type _instance_id; // is this relevant?
+    id_type _instance_id; // is this relevant?
 };
 
 #endif

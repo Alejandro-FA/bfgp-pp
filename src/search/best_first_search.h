@@ -20,21 +20,21 @@ namespace search {
             _bitvec_theory = is_bitvec;
         }*/
 
-        [[nodiscard]] bool is_empty() const override {
+        [[nodiscard]] bool is_empty() const {
             return _open.empty();
         }
 
-        void add_node(std::shared_ptr<Node> node) override {
+        void add_node(std::shared_ptr<Node> node) {
             /// Before adding the node, clear up the program states to save memory
             node->get_program()->clear_program_states();
             _open.push(std::move(node));
         }
 
-        [[nodiscard]] std::shared_ptr<Node> select_node() override {
+        [[nodiscard]] std::shared_ptr<Node> select_node() {
             return _open.top();
         }
 
-        [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) override {
+        [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
             auto p = node->get_program();
             auto vps = (run_program?p->run(_gpp.get(), false, only_active_instances):p->get_program_states());
             _last_failed_instance_idx = -1;
@@ -104,7 +104,7 @@ namespace search {
             return false;
         }
 
-        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) override {
+        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
             //int pc_max = -1;
             auto p = node->get_program();
             auto instructions = p->get_instructions();

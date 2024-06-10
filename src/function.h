@@ -13,17 +13,25 @@ class Function{
 public:
     explicit Function(std::string name = "", id_type id = (id_type)-1) : _name(std::move(name)), _id(id){}
 
-    explicit Function(const Function *f):_name(f->get_name()), _id(f->get_id()){
-        for(const auto& p : f->get_parameters()){
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
+    Function(const Function &f) : _name(f.get_name()), _id(f.get_id()){
+        for(const auto& p : f.get_parameters())
             _parameters.emplace_back(p->copy());
-        }
     }
 
+    Function& operator=(const Function &f) = delete; // Currently not needed, and allows to make attributes const
+
+    Function(Function &&f) noexcept = default;
+
+    Function& operator=(Function &&f) noexcept = delete; // Currently not needed, and allows to make attributes const
+
     ~Function() = default;
+    /// End of Rule of five
 
     // ToDo: test this function
     [[nodiscard]] std::unique_ptr<Function> copy() const {
-        return std::make_unique<Function>(this);
+        return std::make_unique<Function>(*this);
     }
 
     void add_parameter(std::unique_ptr<const Object> t){

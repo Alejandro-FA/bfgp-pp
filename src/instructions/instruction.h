@@ -13,6 +13,10 @@ namespace instructions {
         explicit Instruction(std::string name = "empty") : _name(std::move(name)), _instruction_id(0) {};
         virtual ~Instruction() = default;
 
+        [[nodiscard]] virtual std::unique_ptr<Instruction> copy() const {
+            return std::make_unique<Instruction>(*this);
+        }
+
         [[nodiscard]] virtual std::string get_name(bool full_info) const{
             return _name;
         }

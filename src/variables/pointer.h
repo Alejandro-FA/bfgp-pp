@@ -15,16 +15,12 @@ namespace variables {
     public:
         explicit Pointer(const std::string &name, const ObjectType *obj_type) : Variable(name, 0), _type(obj_type) {}
 
-        explicit Pointer(const variables::Pointer* p) : Variable(p->get_name(),p->get_value()), _type(p->get_type()){}
-
-        ~Pointer() override = default;
-
         [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
-            return std::make_unique<Pointer>(this);
+            return std::unique_ptr<Pointer>{new Pointer{*this}};
         }
 
         [[nodiscard]] std::unique_ptr<Pointer> copy() const {
-            return std::make_unique<Pointer>(this);
+            return std::unique_ptr<Pointer>{new Pointer{*this}};
         }
 
         void set_object(const Object *obj){
@@ -43,8 +39,15 @@ namespace variables {
             return (full_info ? "[POINTER]: (" : "(") + _name + "=" + std::to_string(_value) + ")";
         }
 
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        Pointer(const Pointer &p) = default;
+        Pointer(Pointer &&p) = default;
+        Pointer& operator=(const Pointer &p) = default;
+        Pointer& operator=(Pointer &&p) = default;
+
     private:
-        const ObjectType * const _type;  // type of objects addressed by the pointer
+        const ObjectType *_type;  // type of objects addressed by the pointer
         const Object *_obj = nullptr; // object addressed by the pointer
         //value_t value; // value corresponds to the indexed element in [0,|Objects:_type|)
     };

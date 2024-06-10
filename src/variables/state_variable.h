@@ -17,7 +17,7 @@ namespace variables {
         /// Constructor for state variables with object parameters (no pointers)
         explicit StateVariable(const Function *function, const std::vector<const Object *> &objects,
                                const value_t &value = value_t{1}) :
-                Variable("", value), _function(function), _objects(objects) {
+                Variable{"", value}, _function{function}, _objects{objects} {
             // Set the "complex" name var
             _name = function->get_name() +"(";
             for(const auto& o: objects){
@@ -31,6 +31,7 @@ namespace variables {
         };
 
         /// Copy constructor
+        /// TODO: make it protected as all other derived classes of Variable
         explicit StateVariable(const StateVariable* fact) :
                 Variable("", fact->get_value()),
                 _function(fact->get_function()),
@@ -51,8 +52,6 @@ namespace variables {
             }
             _name += ")";
         }
-
-        ~StateVariable() override = default;
 
         // ToDo: test in state_variable.cpp
         [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{

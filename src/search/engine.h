@@ -13,20 +13,6 @@ public:
 
     /// Owns _evaluation_functions and _gpp
 	virtual ~Engine() = default;
-	
-	[[nodiscard]] virtual bool is_empty() const = 0;
-	
-	// Add a node to search data structure
-	virtual void add_node(std::shared_ptr<Node> node) = 0;
-	
-	// Select the next Node and update the data structure
-    [[nodiscard]] virtual std::shared_ptr<Node> select_node() = 0;
-	
-	// Check if goal conditions hold in the current Node
-    [[nodiscard]] virtual bool is_goal(Node* node, bool run_program, bool only_active_instances) = 0;
-	
-	// Expand the current Node, adding all non-visited childs
-	virtual std::vector<std::shared_ptr<Node>> expand_node(Node* node) = 0;
 
 	// accumulated cost
 	//virtual value_t g( Node* node ) = 0;

@@ -12,15 +12,29 @@ public:
     // Default constructor
     State() = default;
 
-    // Constructor mainly used to make copies and propagate effects
-    explicit State (const State *s){
-        for(const auto& it : s->get_facts()){
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
+    State (const State &s){ // Constructor mainly used to make copies and propagate effects
+        for(const auto& it : s.get_facts()){
             _facts.insert(it->copy_no_pointers() );
         }
     }
 
+    State& operator=(const State &s) {
+        auto tmp{s};
+        std::swap(*this, tmp);
+        return *this;
+    }
+
+    State(State &&s) noexcept = default;
+
+    State& operator=(State &&s) noexcept = default;
+
+    ~State() = default;
+    /// End of Rule of five
+
 	[[nodiscard]] std::unique_ptr<State> copy() const {
-        return std::make_unique<State>(this);
+        return std::make_unique<State>(*this);
 	}
 
     void add_fact(std::unique_ptr<variables::StateVariable> f){

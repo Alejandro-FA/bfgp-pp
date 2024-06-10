@@ -12,17 +12,9 @@ class Object{
 public:
     explicit Object(std::string name = "", id_type id = -1, const ObjectType *t = nullptr) : _name(std::move(name)), _id(id), _t(t){}
 
-    explicit Object(const Object* o) : _name(o->get_name()), _id(o->get_id()), _t(o->get_type()){}
-
-    ~Object() = default;
-
     // ToDo: test this function
     [[nodiscard]] std::unique_ptr<Object> copy() const{
-        return std::make_unique<Object>(this);
-    }
-
-    void set_name(const std::string &name){
-        _name = name;
+        return std::make_unique<Object>(*this);
     }
 
     [[nodiscard]] std::string get_name() const{
@@ -44,9 +36,9 @@ public:
     }
 
 private:
-    std::string _name;
+    const std::string _name;
     const id_type _id;
-    const ObjectType *_t;
+    const ObjectType * const _t;
 };
 
 #endif //__OBJECT_H__

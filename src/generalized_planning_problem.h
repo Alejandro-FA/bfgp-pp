@@ -16,17 +16,42 @@ public:
                                bool infinite_detection,
                                //bool use_landmarks,
                                std::string problem_folder):
-                               _gd(std::move(gd)),
-                               _infinite_detection(infinite_detection),
-                               //_use_landmarks(use_landmarks),
-                               _problem_folder(std::move(problem_folder)),
-                               _actions_theory(false),
-                               _progressive(false){
+                               _gd{std::move(gd)},
+                               _infinite_detection{infinite_detection},
+                               //_use_landmarks{use_landmarks},
+                               _problem_folder{std::move(problem_folder)}{
 
     };
 
-    /// Owns _gd and _instances
-	~GeneralizedPlanningProblem() = default;
+    /// Ensure that a copyable class has a default constructor
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c43-ensure-that-a-copyable-class-has-a-default-constructor
+    GeneralizedPlanningProblem() = default;
+
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
+    GeneralizedPlanningProblem(const GeneralizedPlanningProblem &gpp)
+        : _gd{gpp._gd.get()}, _infinite_detection{gpp._infinite_detection}, //_use_landmarks{gpp->_use_landmarks},
+        _actions_theory{gpp._actions_theory}, _progressive{gpp._progressive}, _problem_folder{gpp._problem_folder},
+        _active_instances{gpp._active_instances}, _active_instance_idxs{gpp._active_instance_idxs},
+        _all_instance_idxs{gpp._all_instance_idxs} {
+        for(const auto& ins : gpp._instances){
+            _instances.emplace_back(ins->copy());
+        }
+    }
+
+    GeneralizedPlanningProblem& operator=(const GeneralizedPlanningProblem &gpp) {
+        auto tmp{gpp};
+        std::swap(*this, tmp);
+        return *this;
+    }
+
+    GeneralizedPlanningProblem(GeneralizedPlanningProblem &&gpp) noexcept = default;
+
+    GeneralizedPlanningProblem& operator=(GeneralizedPlanningProblem &&gpp) noexcept = default;
+
+    ~GeneralizedPlanningProblem() = default; // Owns _gd and _instances
+    /// End of Rule of five
+
 
     [[nodiscard]] const GeneralizedDomain* get_generalized_domain() const{
         return _gd.get();
@@ -50,8 +75,8 @@ public:
         _active_instances.emplace_back(true); // by default, all instances are active
         _active_instance_idxs.insert(_instances.size() - 1); // save the instance idx
         _all_instance_idxs.insert(_instances.size()-1); // save the instance idx
-	}	
-	
+	}
+
 	[[nodiscard]] const Instance* get_instance(size_t idx) const{
         assert(idx < _instances.size());
 		return _instances[idx].get();
@@ -146,17 +171,18 @@ public:
 			ret += ins->to_string()+"\n";
 		return ret;
 	}
-	
-private:
-    const std::unique_ptr<GeneralizedDomain> _gd; // All search engines will share the same domain
-    std::vector< std::unique_ptr<Instance> > _instances; // All search engines will share the same instances
 
+private:
+    std::unique_ptr<GeneralizedDomain> _gd; // All search engines will share the same domain
+
+    bool _infinite_detection{false};
+    //bool _use_landmarks{false};
+    bool _actions_theory{false};
+    bool _progressive{false};
+    std::string _problem_folder;
+
+    std::vector< std::unique_ptr<Instance> > _instances; // All search engines will share the same instances
     vec_bool_t _active_instances; // Each search engine will have its own copy of active instances
-    bool _infinite_detection;
-    //std::atomic<bool> _use_landmarks;
-    const std::string _problem_folder;
-    bool _actions_theory;
-    bool _progressive;
     std::set<id_type> _active_instance_idxs; // Each search engine will have its own copy of active instances idxs
     std::set<id_type> _all_instance_idxs; // Each search engine will have its own copy of instance idxs (relatively cheap to copy)
 

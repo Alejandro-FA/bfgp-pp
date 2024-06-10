@@ -11,13 +11,12 @@
 namespace variables {
     class Variable {
     public:
-        explicit Variable(std::string name, const value_t &value) : _name(std::move(name)), _value(value) {}
-        explicit Variable(const Variable *var): _name(var->get_name()), _value(var->get_value()){}
+        explicit Variable(std::string name, const value_t &value) : _name{std::move(name)}, _value{value} {}
 
         virtual ~Variable() = default;
 
         [[nodiscard]] virtual std::unique_ptr<Variable> copy_var() const {
-            return std::make_unique<Variable>(this);
+            return std::unique_ptr<Variable>{new Variable{*this}};
         }
 
         virtual void set_pointer_references(const std::vector<const Variable*> &pointers){
@@ -47,6 +46,13 @@ namespace variables {
         [[nodiscard]] virtual std::string to_string(bool full_info) const {
             return (full_info ? "[VARIABLE]: " : "") + _name + (full_info?"="+std::to_string(_value):"");
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        Variable(const Variable &var) = default;
+        Variable(Variable &&var) = default;
+        Variable& operator=(const Variable &var) = default;
+        Variable& operator=(Variable &&var) = default;
 
     protected:
         std::string _name;

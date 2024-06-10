@@ -10,19 +10,15 @@
 namespace variables {
     class ConstantValue : public Variable {
     public:
-        explicit ConstantValue(const value_t &value) : Variable(std::to_string(value), value) {}
-
-        explicit ConstantValue(const ConstantValue *c) : Variable(c->get_name(), c->get_value()) {}
-
-        ~ConstantValue() override = default;
+        explicit ConstantValue(const value_t &value) : Variable{std::to_string(value), value} {}
 
         // ToDo: test this method
         [[nodiscard]] std::unique_ptr<Variable> copy_var() const override {
-            return std::make_unique<ConstantValue>(this);
+            return std::unique_ptr<ConstantValue>{new ConstantValue{*this}};
         }
 
         [[nodiscard]] std::unique_ptr<ConstantValue> copy() const {
-            return std::make_unique<ConstantValue>(this);
+            return std::unique_ptr<ConstantValue>{new ConstantValue{*this}};
         }
 
         // constant getter is the same as variable getter
@@ -32,6 +28,13 @@ namespace variables {
         [[nodiscard]] std::string to_string(bool full_info) const override {
             return (full_info ? "[CONSTANT]: " : "") + std::to_string(_value);
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ConstantValue(const ConstantValue &c) = default;
+        ConstantValue(ConstantValue &&c) = default;
+        ConstantValue& operator=(const ConstantValue &c) = default;
+        ConstantValue& operator=(ConstantValue &&c) = default;
     };
 }
 #endif //__CONSTANT_VALUE_H__

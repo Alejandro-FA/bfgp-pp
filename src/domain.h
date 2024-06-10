@@ -15,9 +15,38 @@ public:
     }
 
     ///
-    /// Owns _object_types, _constants, _functions and _actions
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations.
     ///
-	~Domain() = default;
+    Domain(const Domain &domain)
+        : _name{domain._name}, _object_type_name_to_idx{domain._object_type_name_to_idx},
+        _constant_name_to_idx{domain._constant_name_to_idx}, _function_name_to_idx{domain._function_name_to_idx},
+        _action_name_to_idx{domain._action_name_to_idx} {
+
+        for(const auto& ot : domain._object_types)
+            _object_types.emplace_back(ot->copy());
+        for(const auto& c : domain._constants)
+            _constants.emplace_back(c->copy());
+        for(const auto& f : domain._functions)
+            _functions.emplace_back(f->copy());
+        for(const auto& act : domain._actions)
+            _actions.emplace_back(act->copy());
+    }
+
+    Domain& operator=(const Domain &domain) {
+        auto tmp{domain};
+        std::swap(*this, tmp);
+        return *this;
+    }
+
+    Domain(Domain &&domain) noexcept = default;
+
+    Domain& operator=(Domain &&domain) noexcept = default;
+
+	~Domain() = default; // Owns _object_types, _constants, _functions and _actions
+
+    [[nodiscard]] std::unique_ptr<Domain> copy() const{
+        return std::make_unique<Domain>(*this);
+    }
 
     ///
     /// Setter functions

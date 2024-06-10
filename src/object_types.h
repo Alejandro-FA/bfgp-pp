@@ -9,13 +9,14 @@
 
 class ObjectType{
 public:
-    explicit ObjectType(std::string name, ObjectType* supertype):
-        _type_name(std::move(name)) {
+    explicit ObjectType(std::string name = "", ObjectType* supertype = nullptr)
+        : _type_name(std::move(name)), _supertype(supertype) {
         if (supertype) supertype->add_subtype(this);
-        _supertype = supertype;
     }
 
-    ~ObjectType() = default;
+    [[nodiscard]] std::unique_ptr<ObjectType> copy() const{
+        return std::make_unique<ObjectType>(*this);
+    }
 
     void add_subtype(const ObjectType *subtype){
         /// Add a subtype to the class
@@ -81,7 +82,7 @@ public:
 
 private:
     const std::string _type_name;
-    const ObjectType* _supertype;
+    const ObjectType * const _supertype;
     std::vector<const ObjectType*> _subtypes;
 
 };

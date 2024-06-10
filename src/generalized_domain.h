@@ -11,10 +11,36 @@ public:
 	/// Instructions can be created only once but we keep the logic
 	/// of which actions can be programmed in each line here, so the
 	/// engine does not have to reason about it
-	GeneralizedDomain(std::unique_ptr<const Domain> domain): _domain(std::move(domain)){};
+	explicit GeneralizedDomain(std::unique_ptr<const Domain> domain): _domain(std::move(domain)){};
 
-    /// Owns _instructions_line and _features
-	~GeneralizedDomain() = default;
+    /// Ensure that a copyable class has a default constructor
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c43-ensure-that-a-copyable-class-has-a-default-constructor
+    GeneralizedDomain() = default;
+
+    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
+    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
+    GeneralizedDomain(const GeneralizedDomain &domain)
+        : _domain{domain._domain->copy()}, _program_lines{domain._program_lines} {
+        for(const auto& ins : domain._instructions)
+            _instructions.emplace_back(ins->copy());
+        for(const auto& ptr : domain._pointers)
+            _pointers.emplace_back(ptr->copy());
+        for(const auto& flag : domain._flags)
+            _flags.emplace_back(flag->copy());
+    }
+
+    GeneralizedDomain& operator=(const GeneralizedDomain &domain) {
+        auto tmp{domain};
+        std::swap(*this, tmp);
+        return *this;
+    }
+
+    GeneralizedDomain(GeneralizedDomain &&domain) noexcept = default;
+
+    GeneralizedDomain& operator=(GeneralizedDomain &&domain) noexcept = default;
+
+    ~GeneralizedDomain() = default; // Owns _domain, _instructions, _pointers and _flags
+    /// End of Rule of five
 
     void set_program_lines(size_t program_lines){
         _program_lines = program_lines;
@@ -138,7 +164,7 @@ protected:
     std::vector<std::unique_ptr<instructions::Instruction>> _instructions;
     std::vector<std::unique_ptr<variables::Pointer>> _pointers;
     std::vector<std::unique_ptr<variables::Flag>> _flags;
-    size_t _program_lines;
+    size_t _program_lines{0};
 
     /// End for instructions => <<ptr_id,dir>,<from=for_line,to=end_for_line+1>> = std::shared_ptr<Instruction> EndFor
     //std::map< std::pair<std::pair<id_type ,int>,std::pair<int,int> >, std::shared_ptr<instructions::Instruction> > _end_for_instructions;
