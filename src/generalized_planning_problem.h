@@ -175,10 +175,10 @@ private:
     bool _progressive{false};
     std::string _problem_folder;
 
-    std::vector< std::unique_ptr<Instance> > _instances; // All search engines will share the same instances
-    vec_bool_t _active_instances; // Each search engine will have its own copy of active instances
-    std::set<id_type> _active_instance_idxs; // Each search engine will have its own copy of active instances idxs
-    std::set<id_type> _all_instance_idxs; // Each search engine will have its own copy of instance idxs (relatively cheap to copy)
+    std::vector< std::unique_ptr<Instance> > _instances;
+    vec_bool_t _active_instances;
+    std::set<id_type> _active_instance_idxs;
+    std::set<id_type> _all_instance_idxs;
 
     /// Possible data-structures to use in preprocessing and search
     //std::vector<std::unique_ptr<landmarks::LandmarkGraph> > _landmark_graphs;

@@ -19,6 +19,7 @@ namespace runner{
         // Build the search engine as a Best-First Search bounded by program lines with
         // the corresponding generalized domain and problem
         auto th_name = arg_parser->get_theory_name();
+        auto num_instances = gpp->get_num_instances();
         if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
             gpp->activate_actions_theory();
         }
@@ -62,7 +63,7 @@ namespace runner{
             stats_info->add_info_msg("SOLUTION NOT FOUND :(");
         }
         stats_info->add_info_msg("Number of instances: " +
-                                 std::to_string(engine->get_generalized_planning_problem()->get_num_instances()));
+                                 std::to_string(num_instances));
         stats_info->add_info_msg("Expanded: " + std::to_string(engine->get_expanded()));
         stats_info->add_info_msg("Evaluated: " + std::to_string(engine->get_evaluated()));
         if(resulting_node != nullptr) {

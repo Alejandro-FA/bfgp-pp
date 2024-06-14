@@ -43,6 +43,7 @@
 //#include "theories/bitvec.h"  // ToDo: implement theory
 
 #include "search/best_first_search.h"
+#include "search/parallel_bfs.h"
 #include "theories/action_ram.h"
 
 
@@ -163,18 +164,49 @@ namespace factories {
         return gpp;
     }
 
+    std::unique_ptr<search::BFS> make_bfs(const utils::ArgumentParser *arg_parser,
+                                          std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        auto bfs {std::make_unique<search::BFS>(std::move(gpp))};
+        bfs->set_theory(make_theory(arg_parser));
+        //if(arg_parser->get_theory_name() == "bitvec") engine->set_bitvec_theory(true); // ToDo: add it as an argument option?
+        return bfs;
+    }
+
+    // FIXME: In the future this will be unnecessary. The goal is to simply perform a deep copy of gpp. Since the
+    //  implementation of the deep copy is not yet available, we pass a lambda function that creates a new BFS object
+    //  (by using ArgumentParser and reading the input files).
+    std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
+                                                            std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        return std::make_unique<search::ParallelBFS>([arg_parser]() {
+            // Create the Generalized Planning Problem
+            auto dom = factories::make_domain(arg_parser);
+            auto gd(factories::make_generalized_domain(arg_parser, std::move(dom)));
+            auto new_gpp = factories::make_generalized_planning_problem(arg_parser, std::move(gd));
+
+            auto th_name = arg_parser->get_theory_name();
+            if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
+                new_gpp->activate_actions_theory();
+            }
+            if(arg_parser->is_progressive()){
+                new_gpp->set_progressive(true);
+                for(size_t instance_id = 1; instance_id < new_gpp->get_num_instances(); ++instance_id)
+                    new_gpp->deactivate_instance(instance_id);
+            }
+
+            return make_bfs(arg_parser, std::move(new_gpp));
+        }, arg_parser->get_threads());
+    }
+
     std::unique_ptr<search::Engine> make_engine(const utils::ArgumentParser* arg_parser,
                                                 std::unique_ptr<GeneralizedPlanningProblem> gpp) {
         // Build the search engine as a Best-First Search bounded by program lines with
         // the corresponding generalized domain and problem
-        auto engine = std::make_unique<search::BFS>(std::move(gpp)); // TODO: MAKE_UNIQUE PARALLEL_BFS
-        //if(arg_parser->get_theory_name() == "bitvec") engine->set_bitvec_theory(true); // ToDo: add it as an argument option?
+        std::unique_ptr<search::Engine> engine;
+        if (arg_parser->get_threads() > 1) engine = make_parallel_bfs(arg_parser, std::move(gpp));
+        else engine = make_bfs(arg_parser, std::move(gpp));
 
         // Set verbosity
         engine->set_verbose(arg_parser->is_verbose());
-
-        // Set the theory
-        engine->set_theory(make_theory(arg_parser));
 
         // Add the list of evaluation functions to prioritize programs during the search
         for (const auto &ef_name: arg_parser->get_evaluation_function_names()) {

@@ -129,6 +129,10 @@ namespace utils {
                     " activates input instances progressively, where tentative solutions fails; "
                     " type: boolean (True, False; true, false; 1, 0);"
                     " default: false\n"
+                    "  " + _threads_stype + ", " + _threads_type + " THREADS  available in \"synthesis\" mode; "
+                    " specifies the number of logical threads to use; "
+                    " type: strictly positive integer; "
+                    " default: 1\n"
                     "  " + _verbosity_stype + ", " + _verbosity_type + " for verbose output; type: boolean"
                     " (True, False; true, false; 1, 0); default: false\n\n"
                     "usage examples:\n"
@@ -176,6 +180,12 @@ namespace utils {
                     if(arg_vals.size() != 1u)
                         helper("Exactly one boolean expected but " + std::to_string(arg_vals.size()) + " found.");
                     parse_progressive(arg_vals[0]);
+                }
+                else if(arg_type == _threads_ntype){
+                    if(arg_vals.size() != 1u)
+                        helper("Exactly one value for threads expected but " +
+                                std::to_string(arg_vals.size()) + " found.");
+                    parse_threads(arg_vals[0]);
                 }
                 else if(arg_type == _output_file_ntype){
                     if(arg_vals.size() != 1u)
@@ -226,6 +236,8 @@ namespace utils {
                 _num_extra_pointers = 0;
             if(arg_map.find(_progressive_ntype) == arg_map.end())
                 _progressive = false;
+            if(arg_map.find(_threads_ntype) == arg_map.end())
+                _threads = 1;
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
         }
@@ -390,6 +402,13 @@ namespace utils {
             _progressive = it->second;
         }
 
+        void parse_threads(const std::string &str_threads){
+            // Checking input type is a valid number
+            if(not utils::is_number(str_threads))
+                helper("Wrong input format. The input number of logical threads " + str_threads + " is not a number.");
+            _threads = utils::str_to_num(str_threads);
+        }
+
         void parse_output_file(const std::string &str_output_file){
             _output_file = str_output_file;
             // if (!std::filesystem::exists(_output_file))  // do not check whether it exists
@@ -460,6 +479,10 @@ namespace utils {
             return _progressive;
         }
 
+        [[nodiscard]] unsigned int get_threads() const{
+            return _threads;
+        }
+
         [[nodiscard]] std::string get_output_file() const{
             return _output_file;
         }
@@ -486,6 +509,7 @@ namespace utils {
             if (arg_type == _num_extra_pointers_type or arg_type == _num_extra_pointers_stype)
                 return _num_extra_pointers_ntype;
             if (arg_type == _progressive_type or arg_type == _progressive_stype) return _progressive_ntype;
+            if (arg_type == _threads_type or arg_type == _threads_stype) return _threads_ntype;
             if (arg_type == _output_file_type or arg_type == _output_file_stype) return _output_file_ntype;
             if (arg_type == _verbosity_type or arg_type == _verbosity_stype) return _verbosity_ntype;
             if (arg_type == _save_pddl_plans_type or arg_type == _save_pddl_plans_stype) return _save_pddl_plans_ntype;
@@ -504,6 +528,7 @@ namespace utils {
         value_t _max_val;
         int _num_extra_pointers;  // number of extra pointers per argument type
         bool _progressive; // optional for synthesis and repair only (default: false)
+        unsigned int _threads; // optional for synthesis and repair only (default: 1)
         std::string _output_file;  // optional for synthesis and repair only (default: "")
         bool _verbose; // optional verbose output
         bool _save_pddl_plans; // optional save pddl action plans in a file
@@ -534,6 +559,9 @@ namespace utils {
         inline static const std::string _progressive_type = "--progressive";
         inline static const std::string _progressive_stype = "-pgp"; // short type
         inline static const std::string _progressive_ntype = "progressive"; // normalized type
+        inline static const std::string _threads_type = "--threads";
+        inline static const std::string _threads_stype = "-n"; // short type
+        inline static const std::string _threads_ntype = "threads"; // normalized type
         inline static const std::string _infinite_detection_type = "--infinite-detection";
         inline static const std::string _infinite_detection_stype = "-inf"; // short type
         inline static const std::string _infinite_detection_ntype = "infinite_detection"; // normalized type

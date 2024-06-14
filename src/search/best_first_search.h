@@ -10,7 +10,7 @@
 namespace search {
     class BFS : public Engine {
     public:
-        explicit BFS(std::unique_ptr<GeneralizedPlanningProblem> gpp) : Engine{std::move(gpp)} {
+        explicit BFS(std::unique_ptr<GeneralizedPlanningProblem> gpp) : _gpp{std::move(gpp)} {
             //_bitvec_theory = false;
         }
 
@@ -30,6 +30,15 @@ namespace search {
 
         [[nodiscard]] std::shared_ptr<Node> select_node() {
             return _open.top();
+        }
+
+        // Set a new theory for the syntactic constraints
+        void set_theory(std::unique_ptr<theory::Theory> theory){
+            _theory = std::move(theory);
+        }
+
+        [[nodiscard]] const theory::Theory* get_theory() const{
+            return _theory.get();
         }
 
         [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
@@ -167,6 +176,12 @@ namespace search {
             return childs;
         }
 
+        // accumulated cost
+        //virtual value_t g(const Node* node) = 0;
+
+        // heuristic functions
+        //virtual vec_value_t h(const Node* node) = 0;
+
         [[nodiscard]] vec_value_t f(const Node* node) const {
             auto p = node->get_program();
             vec_value_t val_h;
@@ -302,6 +317,9 @@ namespace search {
         }
 
     private:
+        std::unique_ptr<GeneralizedPlanningProblem> _gpp;
+        std::unique_ptr<theory::Theory> _theory;
+
         // In priority_queue, unique_ptr cannot be accessed through top() because is deleted
         std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> _open;
 
