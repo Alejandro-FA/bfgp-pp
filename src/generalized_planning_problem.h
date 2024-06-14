@@ -23,35 +23,29 @@ public:
 
     };
 
+    /// Owns _gd and _instances
+    ~GeneralizedPlanningProblem() = default;
+
     /// Ensure that a copyable class has a default constructor
     /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c43-ensure-that-a-copyable-class-has-a-default-constructor
     GeneralizedPlanningProblem() = default;
 
-    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations
-    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c21-if-you-define-or-delete-any-copy-move-or-destructor-function-define-or-delete-them-all
-    GeneralizedPlanningProblem(const GeneralizedPlanningProblem &gpp)
-        : _gd{gpp._gd.get()}, _infinite_detection{gpp._infinite_detection}, //_use_landmarks{gpp->_use_landmarks},
-        _actions_theory{gpp._actions_theory}, _progressive{gpp._progressive}, _problem_folder{gpp._problem_folder},
-        _active_instances{gpp._active_instances}, _active_instance_idxs{gpp._active_instance_idxs},
-        _all_instance_idxs{gpp._all_instance_idxs} {
-        for(const auto& ins : gpp._instances){
-            _instances.emplace_back(ins->copy());
-        }
+    [[nodiscard]] std::unique_ptr<GeneralizedPlanningProblem> deep_copy() const {
+        throw std::logic_error{"Not implemented yet"};
+        auto gpp{std::make_unique<GeneralizedPlanningProblem>(
+            _gd->deep_copy(),
+            _infinite_detection,
+            //_use_landmarks,
+            _problem_folder
+        )};
+        gpp->set_progressive(_progressive);
+        if (is_actions_theory()) gpp->activate_actions_theory();
+        // TODO: Add instances
+        gpp->_active_instances = _active_instances;
+        gpp->_active_instance_idxs = _active_instance_idxs;
+        gpp->_all_instance_idxs = _all_instance_idxs;
+        return gpp;
     }
-
-    GeneralizedPlanningProblem& operator=(const GeneralizedPlanningProblem &gpp) {
-        auto tmp{gpp};
-        std::swap(*this, tmp);
-        return *this;
-    }
-
-    GeneralizedPlanningProblem(GeneralizedPlanningProblem &&gpp) noexcept = default;
-
-    GeneralizedPlanningProblem& operator=(GeneralizedPlanningProblem &&gpp) noexcept = default;
-
-    ~GeneralizedPlanningProblem() = default; // Owns _gd and _instances
-    /// End of Rule of five
-
 
     [[nodiscard]] const GeneralizedDomain* get_generalized_domain() const{
         return _gd.get();

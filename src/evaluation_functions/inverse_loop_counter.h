@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         InverseLoopCounter() : EvaluationFunction("ilc") {}
 
-        ~InverseLoopCounter() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<InverseLoopCounter>{new InverseLoopCounter{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Compute number of loops of a program to priorize programs with more loops
             value_t res = 0;
             auto instructions = p->get_instructions();
@@ -25,6 +27,13 @@ namespace evaluation_functions {
             }
             return res;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        InverseLoopCounter(const InverseLoopCounter &other) = default;
+        InverseLoopCounter(InverseLoopCounter &&other) = default;
+        InverseLoopCounter& operator=(const InverseLoopCounter &other) = default;
+        InverseLoopCounter& operator=(InverseLoopCounter &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_INVERSE_LOOP_COUNTER_H__

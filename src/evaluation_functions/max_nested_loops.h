@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         MaxNestedLoop() : EvaluationFunction("mnl") {}
 
-        ~MaxNestedLoop() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<MaxNestedLoop>{new MaxNestedLoop{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Compute nested gotos (there could be multiple strategies)
             auto instructions = p->get_instructions();
             vec_value_t affected_lines(instructions.size(), 0);
@@ -37,6 +39,13 @@ namespace evaluation_functions {
             }
             return *std::max_element(affected_lines.begin(), affected_lines.end());
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        MaxNestedLoop(const MaxNestedLoop &other) = default;
+        MaxNestedLoop(MaxNestedLoop &&other) = default;
+        MaxNestedLoop& operator=(const MaxNestedLoop &other) = default;
+        MaxNestedLoop& operator=(MaxNestedLoop &&other) = default;
     };
 }
 

@@ -15,17 +15,28 @@ namespace evaluation_functions {
 
         virtual ~EvaluationFunction() = default;
 
+        [[nodiscard]] virtual std::unique_ptr<EvaluationFunction> copy() const {
+            return std::unique_ptr<EvaluationFunction>{new EvaluationFunction{*this}};
+        }
+
         [[nodiscard]] virtual std::string get_name() const {
             return _name;
         }
 
         // Program-based or Performance-based heuristic
-        virtual value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) {
+        virtual value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const {
             return 0;
         }
 
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        EvaluationFunction(const EvaluationFunction &other) = default;
+        EvaluationFunction(EvaluationFunction &&other) = default;
+        EvaluationFunction& operator=(const EvaluationFunction &other) = default;
+        EvaluationFunction& operator=(EvaluationFunction &&other) = default;
+
     private:
-        const std::string _name;
+        std::string _name;
     };
 }
 

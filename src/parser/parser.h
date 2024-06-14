@@ -493,7 +493,7 @@ namespace parser {
             auto func_name = sig.first;
             auto arguments = sig.second;
             // Check if the function name already exists in the domain
-            auto func_ptr = dom->get_function();
+            auto func_ptr = dom->get_function(); // FIXME: Probably the intention is to call get_function(func_name);
             if (func_ptr != nullptr)
                 utils::system_error("Function " + func_name + " already exists", ERROR_PARSING_DOMAIN);
             auto func_uptr = std::make_unique<Function>(func_name, dom->get_next_func_id());

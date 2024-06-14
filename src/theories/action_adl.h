@@ -23,6 +23,10 @@ namespace theory{
 
         ActionADL() : Theory("ActionADL"){}
 
+        [[nodiscard]] std::unique_ptr<Theory> copy() const override {
+            return std::unique_ptr<ActionADL>{new ActionADL{*this}};
+        }
+
         [[nodiscard]] bool is_action_theory() const override{return true;}
 
         static void build_theory(GeneralizedDomain *gd){
@@ -429,6 +433,14 @@ namespace theory{
             /// Always true by default
             return true;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ActionADL(const ActionADL &other) = default;
+        ActionADL(ActionADL &&other) = default;
+        ActionADL &operator=(const ActionADL &other) = default;
+        ActionADL &operator=(ActionADL &&other) = default;
+
     private:
         //std::set<loop_pattern_t> _loop_patterns;
         std::set<std::set<loop_pattern_t>> _loop_patterns;

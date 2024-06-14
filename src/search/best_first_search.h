@@ -10,11 +10,9 @@
 namespace search {
     class BFS : public Engine {
     public:
-        explicit BFS(std::unique_ptr<GeneralizedPlanningProblem> gpp) : Engine(std::move(gpp)){
+        explicit BFS(std::unique_ptr<GeneralizedPlanningProblem> gpp) : Engine{std::move(gpp)} {
             //_bitvec_theory = false;
         }
-
-        ~BFS() override = default;
 
         /*void set_bitvec_theory(bool is_bitvec){
             _bitvec_theory = is_bitvec;
@@ -169,7 +167,7 @@ namespace search {
             return childs;
         }
 
-        [[nodiscard]] vec_value_t f(const Node* node) const override {
+        [[nodiscard]] vec_value_t f(const Node* node) const {
             auto p = node->get_program();
             vec_value_t val_h;
             val_h.reserve(_evaluation_functions.size());
@@ -311,7 +309,7 @@ namespace search {
         std::unique_ptr<Program> base_program;
 
         // TEST
-        id_type _last_failed_instance_idx;
+        id_type _last_failed_instance_idx{-1};
         //bool _bitvec_theory;
         //std::set<std::vector<vec_value_t>> _closed_program_states;
     };

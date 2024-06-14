@@ -21,6 +21,10 @@ namespace theory{
     public:
         ActionCellular() : Theory("ActionCellular"){}
 
+        [[nodiscard]] std::unique_ptr<Theory> copy() const override {
+            return std::unique_ptr<ActionCellular>{new ActionCellular{*this}};
+        }
+
         [[nodiscard]] bool is_action_theory() const override{return true;}
 
         static void build_theory(GeneralizedDomain *gd){
@@ -338,6 +342,13 @@ namespace theory{
             /// Otherwise, it is a semantically correct instruction
             return true;
         }*/
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ActionCellular(const ActionCellular &other) = default;
+        ActionCellular(ActionCellular &&other) = default;
+        ActionCellular& operator=(const ActionCellular &other) = default;
+        ActionCellular& operator=(ActionCellular &&other) = default;
 
     private:
         std::vector<std::string> _instruction_names;

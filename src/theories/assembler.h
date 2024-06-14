@@ -19,6 +19,10 @@ namespace theory {
     public:
         Assembler() : Theory( "Assembler"){}
 
+        [[nodiscard]] std::unique_ptr<Theory> copy() const override {
+            return std::unique_ptr<Assembler>{new Assembler{*this}};
+        }
+
         static void build_theory(GeneralizedDomain *gd){
             auto grounder = std::make_unique<Grounder>();
 
@@ -127,6 +131,13 @@ namespace theory {
             // Any other case is correct
             return true;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        Assembler(const Assembler& other) = default;
+        Assembler(Assembler&& other) = default;
+        Assembler& operator=(const Assembler& other) = default;
+        Assembler& operator=(Assembler&& other) = default;
     };
 }
 

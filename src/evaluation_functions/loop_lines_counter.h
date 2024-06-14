@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         LoopLinesCounter() : EvaluationFunction("llc") {}
 
-        ~LoopLinesCounter() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<LoopLinesCounter>{new LoopLinesCounter{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Counting number of times lines are covered by loops of a program
             value_t line_counter = 0;
             auto instructions = p->get_instructions();
@@ -27,6 +29,13 @@ namespace evaluation_functions {
             }
             return -line_counter;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        LoopLinesCounter(const LoopLinesCounter &other) = default;
+        LoopLinesCounter(LoopLinesCounter &&other) = default;
+        LoopLinesCounter& operator=(const LoopLinesCounter &other) = default;
+        LoopLinesCounter& operator=(LoopLinesCounter &&other) = default;
     };
 }
 

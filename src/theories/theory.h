@@ -11,9 +11,12 @@ namespace theory {
     class Theory {
     public:
         explicit Theory(std::string name = "theory") : _name(std::move(name)) {};
-        ~Theory() = default;
 
-        virtual void set_initial_program(GeneralizedPlanningProblem *gpp, Program *p){
+        virtual ~Theory() = default;
+
+        [[nodiscard]] virtual std::unique_ptr<Theory> copy() const = 0;
+
+        virtual void set_initial_program(GeneralizedPlanningProblem *gpp, Program *p) {
             // By default, set END instruction in the last line
             p->set_instruction(p->get_num_instructions()-1,gpp->get_generalized_domain()->get_instruction("end"));
         }
@@ -33,8 +36,16 @@ namespace theory {
         [[nodiscard]] virtual std::string get_name() const{
             return _name;
         }
+
     protected:
-        const std::string _name;
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        Theory(const Theory& other) = default;
+        Theory(Theory&& other) = default;
+        Theory& operator=(const Theory& other) = default;
+        Theory& operator=(Theory&& other) = default;
+
+    protected:
+        std::string _name;
     };
 }
 

@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         explicit WAStar(int w=5) : EvaluationFunction("wastar"), _w(w) {}
 
-        ~WAStar() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<WAStar>{new WAStar{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Computing squared distance to goal after each execution.
             /// This assumes that goals are equalities.
             //auto vps = p->run( gpp );
@@ -37,6 +39,14 @@ namespace evaluation_functions {
             }
             return _w * res + p->get_num_of_steps(); // e = w*h + c
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        WAStar(const WAStar &other) = default;
+        WAStar(WAStar &&other) = default;
+        WAStar& operator=(const WAStar &other) = default;
+        WAStar& operator=(WAStar &&other) = default;
+
     private:
         int _w;
     };

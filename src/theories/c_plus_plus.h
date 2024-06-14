@@ -21,6 +21,10 @@ namespace theory{
     public:
         CPlusPlus() : Theory("CPP"){}
 
+        [[nodiscard]] std::unique_ptr<Theory> copy() const override{
+            return std::unique_ptr<CPlusPlus>{new CPlusPlus{*this}};
+        }
+
         static void build_theory(GeneralizedDomain *gd){
             auto grounder = std::make_unique<Grounder>();
 
@@ -290,6 +294,13 @@ namespace theory{
 
             return true;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        CPlusPlus(const CPlusPlus& other) = default;
+        CPlusPlus(CPlusPlus&& other) = default;
+        CPlusPlus& operator=(const CPlusPlus& other) = default;
+        CPlusPlus& operator=(CPlusPlus&& other) = default;
     };
 }
 

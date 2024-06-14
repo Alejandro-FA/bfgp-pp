@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         DistanceToLastLine() : EvaluationFunction("dll") {}
 
-        ~DistanceToLastLine() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<DistanceToLastLine>{new DistanceToLastLine{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Return the minimum distance to last line for all non-terminated
             /// program executions, otherwise is 0
             //auto vps = p->run( gpp );
@@ -31,6 +33,13 @@ namespace evaluation_functions {
             }
             return (max_line==-1?0:(value_t)p->get_num_instructions()-1-max_line);
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        DistanceToLastLine(const DistanceToLastLine &other) = default;
+        DistanceToLastLine(DistanceToLastLine &&other) = default;
+        DistanceToLastLine& operator=(const DistanceToLastLine &other) = default;
+        DistanceToLastLine& operator=(DistanceToLastLine &&other) = default;
     };
 }
 

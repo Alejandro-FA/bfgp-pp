@@ -10,17 +10,15 @@
 namespace variables {
     class ZeroFlag : public Flag {
     public:
-        ZeroFlag() : Flag("zf") {}
-
-        ~ZeroFlag() override = default;
+        ZeroFlag() : Flag{"zf"} {}
 
         // ToDo: test this method
         [[nodiscard]] std::unique_ptr<Variable> copy_var() const override{
-            return std::unique_ptr<ZeroFlag>(new ZeroFlag(*this));
+            return std::unique_ptr<ZeroFlag>{new ZeroFlag{*this}};
         }
 
         [[nodiscard]] std::unique_ptr<ZeroFlag> copy() const{
-            return std::unique_ptr<ZeroFlag>(new ZeroFlag(*this));
+            return std::unique_ptr<ZeroFlag>{new ZeroFlag{*this}};
         }
 
         void set_value(const value_t &res) override {
@@ -28,7 +26,11 @@ namespace variables {
         }
 
     protected:
-        ZeroFlag(const ZeroFlag &zf) : Flag(zf.get_name()) {}
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ZeroFlag(const ZeroFlag &zf) = default;
+        ZeroFlag(ZeroFlag &&zf) = default;
+        ZeroFlag& operator=(const ZeroFlag &zf) = default;
+        ZeroFlag& operator=(ZeroFlag &&zf) = default;
     };
 }
 

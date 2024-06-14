@@ -21,6 +21,10 @@ namespace theory{
     public:
         ActionRAM() : Theory("ActionRAM"){}
 
+        [[nodiscard]] std::unique_ptr<Theory> copy() const override{
+            return std::unique_ptr<ActionRAM>{new ActionRAM{*this}};
+        }
+
         [[nodiscard]] bool is_action_theory() const override{return true;}
 
         static void build_theory(GeneralizedDomain *gd){
@@ -194,6 +198,12 @@ namespace theory{
             return true;
         }
 
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ActionRAM(const ActionRAM &other) = default;
+        ActionRAM(ActionRAM &&other) = default;
+        ActionRAM &operator=(const ActionRAM &other) = default;
+        ActionRAM &operator=(ActionRAM &&other) = default;
     };
 }
 

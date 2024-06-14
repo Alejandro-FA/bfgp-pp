@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         ClosestHammingDistance() : EvaluationFunction("chd") {}
 
-        ~ClosestHammingDistance() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<ClosestHammingDistance>{new ClosestHammingDistance{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Computing the closest hamming distance to goal after each execution.
             /// This assumes that goals are vector(ptr_goal) = [value].
             // ToDo: this is currently wrong. Run p only once, then compare the goal condition over each ptr_res_i
@@ -61,6 +63,13 @@ namespace evaluation_functions {
             }
             return std::accumulate(best_res.begin(), best_res.end(), 0);
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        ClosestHammingDistance(const ClosestHammingDistance &other) = default;
+        ClosestHammingDistance(ClosestHammingDistance &&other) = default;
+        ClosestHammingDistance& operator=(const ClosestHammingDistance &other) = default;
+        ClosestHammingDistance& operator=(ClosestHammingDistance &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_CLOSEST_HAMMING_DISTANCE_H__

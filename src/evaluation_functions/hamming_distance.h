@@ -13,11 +13,13 @@ namespace evaluation_functions {
     public:
         HammingDistance() : EvaluationFunction("hd") {}
 
-        ~HammingDistance() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<HammingDistance>{new HammingDistance{*this}};
+        }
 
         // Computing the hamming distance to goal after each execution.
         // This assumes that goals are equalities.
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();
 
@@ -44,6 +46,13 @@ namespace evaluation_functions {
             }
             return res;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        HammingDistance(const HammingDistance &other) = default;
+        HammingDistance(HammingDistance &&other) = default;
+        HammingDistance& operator=(const HammingDistance &other) = default;
+        HammingDistance& operator=(HammingDistance &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_HAMMING_DISTANCE_H__

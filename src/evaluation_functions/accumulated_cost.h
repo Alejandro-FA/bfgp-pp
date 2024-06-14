@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         AccumulatedCost() : EvaluationFunction("ac") {}
 
-        ~AccumulatedCost() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<AccumulatedCost>{new AccumulatedCost{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Return the number of steps taken by the current program in the gpp problem
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();
@@ -25,6 +27,13 @@ namespace evaluation_functions {
 
             return p->get_num_of_steps();
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        AccumulatedCost(const AccumulatedCost &other) = default;
+        AccumulatedCost(AccumulatedCost &&other) = default;
+        AccumulatedCost& operator=(const AccumulatedCost &other) = default;
+        AccumulatedCost& operator=(AccumulatedCost &&other) = default;
     };
 }
 

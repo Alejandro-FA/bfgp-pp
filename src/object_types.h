@@ -14,10 +14,6 @@ public:
         if (supertype) supertype->add_subtype(this);
     }
 
-    [[nodiscard]] std::unique_ptr<ObjectType> copy() const{
-        return std::make_unique<ObjectType>(*this);
-    }
-
     void add_subtype(const ObjectType *subtype){
         /// Add a subtype to the class
         _subtypes.emplace_back(subtype);

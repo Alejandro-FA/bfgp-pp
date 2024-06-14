@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         MaxLoopLines() : EvaluationFunction("mll") {}
 
-        ~MaxLoopLines() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<MaxLoopLines>{new MaxLoopLines{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Maximize number of lines covered by program loops
             auto instructions = p->get_instructions();
             std::vector<bool> covered(instructions.size(), false);
@@ -32,6 +34,12 @@ namespace evaluation_functions {
             return -(value_t) count(covered.begin(), covered.end(), true);
         }
 
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        MaxLoopLines(const MaxLoopLines &other) = default;
+        MaxLoopLines(MaxLoopLines &&other) = default;
+        MaxLoopLines& operator=(const MaxLoopLines &other) = default;
+        MaxLoopLines& operator=(MaxLoopLines &&other) = default;
     };
 }
 

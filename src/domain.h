@@ -1,6 +1,7 @@
 #ifndef __DOMAIN_H__
 #define __DOMAIN_H__
 
+#include <ranges>
 #include "utils/common.h"
 //#include "state_descriptor.h"
 #include "object_types.h"
@@ -10,42 +11,52 @@
 
 class Domain{
 public:
-	explicit Domain(std::string name = "") : _name(std::move(name)){
+	explicit Domain(std::string name = "") : _name{std::move(name)} {
         add_object_type(std::make_unique<ObjectType>("object",nullptr)); // create base "object" type
     }
 
-    ///
-    /// Rule of five: since we need a copy constructor, it is recommended to define all default operations.
-    ///
-    Domain(const Domain &domain)
-        : _name{domain._name}, _object_type_name_to_idx{domain._object_type_name_to_idx},
-        _constant_name_to_idx{domain._constant_name_to_idx}, _function_name_to_idx{domain._function_name_to_idx},
-        _action_name_to_idx{domain._action_name_to_idx} {
+    /// Owns _object_types, _constants, _functions and _actions
+	~Domain() = default;
 
-        for(const auto& ot : domain._object_types)
-            _object_types.emplace_back(ot->copy());
-        for(const auto& c : domain._constants)
-            _constants.emplace_back(c->copy());
-        for(const auto& f : domain._functions)
-            _functions.emplace_back(f->copy());
-        for(const auto& act : domain._actions)
-            _actions.emplace_back(act->copy());
-    }
+    [[nodiscard]] std::unique_ptr<Domain> deep_copy() const{
+        throw std::logic_error{"Not implemented yet"};
+        auto dom{std::make_unique<Domain>(this->get_name())};
 
-    Domain& operator=(const Domain &domain) {
-        auto tmp{domain};
-        std::swap(*this, tmp);
-        return *this;
-    }
+        // Add all object types (except the base object type, which is already created)
+        for(const auto& ot : _object_types | std::views::drop(1)) {
+            auto ot_super_name{ot->get_supertype()->get_name()}; // Assumes that the only type with no supertype is "object"
+            auto ot_super_ptr{dom->get_object_type(ot_super_name)};
+            dom->add_object_type(std::make_unique<ObjectType>(ot->get_name(), ot_super_ptr));
+        }
+        // Add all constants
+        for(const auto& c : _constants) {
+            auto c_type_name{c->get_type()->get_name()};
+            auto c_type_ptr{dom->get_object_type(c_type_name)};
+            dom->add_constant(std::make_unique<Object>(c->get_name(), dom->get_next_const_id(), c_type_ptr));
+        }
+        // Add all functions
+        for(const auto& f : _functions) {
+            auto function{std::make_unique<Function>(f->get_name(), dom->get_next_func_id())};
+            id_type local_id{0};
+            for (const auto &p: f->get_parameters()) {
+                auto p_type_name{p->get_type()->get_name()};
+                auto p_type_ptr{dom->get_object_type(p_type_name)};
+                function->add_parameter(std::make_unique<Object>(p->get_name(), local_id++, p_type_ptr));
+            }
+            dom->add_function(std::move(function));
+        }
+        // Add all actions
+        for(const auto& a : _actions) {
+            auto action{std::make_unique<Action>(a->get_name(), a->get_type())};
+            for(const auto& p : a->get_parameters()) {
+                auto p_type_name{p->get_type()->get_name()};
+                auto p_type_ptr{dom->get_object_type(p_type_name)};
+                action->add_parameter(std::make_unique<Object>(p->get_name(), action->get_next_parameter_id(), p_type_ptr));
+            }
+            // TODO: Add preconditions and effects
+        }
 
-    Domain(Domain &&domain) noexcept = default;
-
-    Domain& operator=(Domain &&domain) noexcept = default;
-
-	~Domain() = default; // Owns _object_types, _constants, _functions and _actions
-
-    [[nodiscard]] std::unique_ptr<Domain> copy() const{
-        return std::make_unique<Domain>(*this);
+        return dom;
     }
 
     ///

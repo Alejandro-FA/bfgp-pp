@@ -11,9 +11,11 @@ namespace evaluation_functions {
     public:
         NumEmptyInstructions() : EvaluationFunction("nei") {}
 
-        ~NumEmptyInstructions() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<NumEmptyInstructions>{new NumEmptyInstructions{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Return the number of repeated instructions
             value_t n_empty_ins = 0;
             for(const auto &ins : p->get_instructions()){
@@ -22,6 +24,12 @@ namespace evaluation_functions {
             }
             return n_empty_ins;
         }
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        NumEmptyInstructions(const NumEmptyInstructions &other) = default;
+        NumEmptyInstructions(NumEmptyInstructions &&other) = default;
+        NumEmptyInstructions& operator=(const NumEmptyInstructions &other) = default;
+        NumEmptyInstructions& operator=(NumEmptyInstructions &&other) = default;
     };
 }
 

@@ -19,15 +19,12 @@ public:
 
 	// heuristic functions
 	//virtual vec_value_t h(Node* node) = 0;
-
-	// evaluation functions
-	virtual vec_value_t f(const Node* node) const = 0;
 	
 	// Solve the problem starting from init Node
 	virtual std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) = 0;
 	
 	// Add a new heuristic to the engine
-	void add_evaluation_function(std::unique_ptr<evaluation_functions::EvaluationFunction> new_ef ){
+	void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ){
         std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
         _evaluation_functions.emplace_back(std::move(new_ef) );
     }
@@ -62,12 +59,12 @@ public:
     }
 	
 protected:
-	value_t _evaluated_nodes = 0;
-	value_t _expanded_nodes = 0;
-    std::vector<std::unique_ptr<evaluation_functions::EvaluationFunction>> _evaluation_functions;
 	std::unique_ptr<GeneralizedPlanningProblem> _gpp;
+    bool _verbose{false};
     std::unique_ptr<theory::Theory> _theory;
-    bool _verbose = false;
+    std::vector<std::unique_ptr<const evaluation_functions::EvaluationFunction>> _evaluation_functions;
+	value_t _evaluated_nodes{0};
+	value_t _expanded_nodes{0};
 };
 
 }

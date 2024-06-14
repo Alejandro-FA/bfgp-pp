@@ -16,11 +16,13 @@ namespace evaluation_functions {
     public:
         JaccardDistance() : EvaluationFunction("jd") {}
 
-        ~JaccardDistance() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<JaccardDistance>{new JaccardDistance{*this}};
+        }
 
         // Computing the hamming distance to goal after each execution.
         // This assumes that goals are equalities.
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();
 
@@ -49,6 +51,13 @@ namespace evaluation_functions {
             }
             return m_union - m_intersection; // this should be divided by m_union, but we prefer to keep it in the integer domain
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        JaccardDistance(const JaccardDistance &other) = default;
+        JaccardDistance(JaccardDistance &&other) = default;
+        JaccardDistance& operator=(const JaccardDistance &other) = default;
+        JaccardDistance& operator=(JaccardDistance &&other) = default;
     };
 }
 

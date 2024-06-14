@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         AStar() : EvaluationFunction("astar") {}
 
-        ~AStar() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<AStar>{new AStar{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Computing squared distance to goal after each execution.
             /// This assumes that goals are equalities.
             //auto vps = p->run( gpp );
@@ -37,6 +39,13 @@ namespace evaluation_functions {
             }
             return res + p->get_num_of_steps(); // e = h + c
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        AStar(const AStar &other) = default;
+        AStar(AStar &&other) = default;
+        AStar& operator=(const AStar &other) = default;
+        AStar& operator=(AStar &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_A_STAR_H__

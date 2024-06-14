@@ -17,10 +17,6 @@ namespace variables {
             return std::unique_ptr<Flag>{new Flag{*this}};
         }
 
-        [[nodiscard]] std::unique_ptr<Flag> copy() const{
-            return std::unique_ptr<Flag>{new Flag{*this}};
-        }
-
         // [[nodiscard]] value_t get_value() const { return _value; }  // use the default
         //virtual void set_value(const value_t &res) {}  // use the default
         // std::string get_name() const{} // use the default

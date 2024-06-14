@@ -12,10 +12,13 @@ namespace evaluation_functions{
     class HAdd : public EvaluationFunction{
     public:
         HAdd() : EvaluationFunction("hadd") {};
-        ~HAdd() override = default;
+
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<HAdd>{new HAdd{*this}};
+        }
 
         // Computing the h_add heuristic per node in the search
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             //auto vps = p->run( gpp );
             auto vps = p->get_program_states();
             // Error when running the program over active instances
@@ -40,6 +43,13 @@ namespace evaluation_functions{
             }
             return res;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        HAdd(const HAdd &other) = default;
+        HAdd(HAdd &&other) = default;
+        HAdd& operator=(const HAdd &other) = default;
+        HAdd& operator=(HAdd &&other) = default;
     };
 }
 

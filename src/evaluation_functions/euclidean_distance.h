@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         EuclideanDistance() : EvaluationFunction("ed") {}
 
-        ~EuclideanDistance() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<EuclideanDistance>{new EuclideanDistance{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Computing squared distance to goal after each execution.
             /// This assumes that goals are equalities.
             //auto vps = p->run( gpp );
@@ -40,6 +42,13 @@ namespace evaluation_functions {
             }
             return res;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        EuclideanDistance(const EuclideanDistance &other) = default;
+        EuclideanDistance(EuclideanDistance &&other) = default;
+        EuclideanDistance& operator=(const EuclideanDistance &other) = default;
+        EuclideanDistance& operator=(EuclideanDistance &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_EUCLIDEAN_DISTANCE_H__

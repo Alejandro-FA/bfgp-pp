@@ -14,9 +14,11 @@ namespace evaluation_functions {
     public:
         MaxIfs() : EvaluationFunction("mi") {}
 
-        ~MaxIfs() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<MaxIfs>{new MaxIfs{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Maximize number of lines with IF and TEST instructions
             auto instructions = p->get_instructions();
             value_t if_counter{0};
@@ -28,6 +30,13 @@ namespace evaluation_functions {
             }
             return -if_counter;  // Returning the negated counter to maximize the number of IF instructions
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        MaxIfs(const MaxIfs &other) = default;
+        MaxIfs(MaxIfs &&other) = default;
+        MaxIfs& operator=(const MaxIfs &other) = default;
+        MaxIfs& operator=(MaxIfs &&other) = default;
     };
 }
 

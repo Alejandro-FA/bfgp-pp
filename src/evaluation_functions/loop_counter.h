@@ -13,9 +13,11 @@ namespace evaluation_functions {
     public:
         LoopCounter() : EvaluationFunction("lc") {}
 
-        ~LoopCounter() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<LoopCounter>{new LoopCounter{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             // Compute number of loops of a program
             value_t res = 0;
             auto instructions = p->get_instructions();
@@ -25,6 +27,13 @@ namespace evaluation_functions {
             }
             return res;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        LoopCounter(const LoopCounter &other) = default;
+        LoopCounter(LoopCounter &&other) = default;
+        LoopCounter& operator=(const LoopCounter &other) = default;
+        LoopCounter& operator=(LoopCounter &&other) = default;
     };
 }
 

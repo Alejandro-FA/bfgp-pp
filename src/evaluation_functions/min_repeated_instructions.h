@@ -12,9 +12,11 @@ namespace evaluation_functions {
     public:
         MinRepeatedInstructions() : EvaluationFunction("mri") {}
 
-        ~MinRepeatedInstructions() override = default;
+        [[nodiscard]] std::unique_ptr<EvaluationFunction> copy() const override {
+            return std::unique_ptr<MinRepeatedInstructions>{new MinRepeatedInstructions{*this}};
+        }
 
-        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) override {
+        value_t compute(const Program *p, const GeneralizedPlanningProblem *gpp) const override {
             /// Return the number of repeated instructions
             std::map<std::string, value_t > instruction_counter;
             value_t max_repetitions = 0;
@@ -27,6 +29,13 @@ namespace evaluation_functions {
             }
             return max_repetitions;
         }
+
+    protected:
+        /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c67-a-polymorphic-class-should-suppress-public-copymove
+        MinRepeatedInstructions(const MinRepeatedInstructions &other) = default;
+        MinRepeatedInstructions(MinRepeatedInstructions &&other) = default;
+        MinRepeatedInstructions& operator=(const MinRepeatedInstructions &other) = default;
+        MinRepeatedInstructions& operator=(MinRepeatedInstructions &&other) = default;
     };
 }
 #endif //__EVALUATION_FUNCTIONS_MIN_REPEATED_INSTRUCTIONS_H__
