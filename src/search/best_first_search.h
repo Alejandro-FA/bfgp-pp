@@ -5,6 +5,7 @@
 #ifndef __SEARCH_BEST_FIRST_SEARCH_H__
 #define __SEARCH_BEST_FIRST_SEARCH_H__
 
+#include <stop_token>
 #include "engine.h"
 
 namespace search {
@@ -14,9 +15,22 @@ namespace search {
             //_bitvec_theory = false;
         }
 
+        void set_max_queue_size(std::size_t max_queue_size) {
+            _max_queue_size = max_queue_size;
+        }
+
+        void set_stop_source(std::stop_source ssource) {
+            _ssource = std::move(ssource);
+        }
+
         /*void set_bitvec_theory(bool is_bitvec){
             _bitvec_theory = is_bitvec;
         }*/
+
+        // Set a new theory for the syntactic constraints
+        void set_theory(std::unique_ptr<theory::Theory> theory){
+            _theory = std::move(theory);
+        }
 
         [[nodiscard]] bool is_empty() const {
             return _open.empty();
@@ -29,16 +43,9 @@ namespace search {
         }
 
         [[nodiscard]] std::shared_ptr<Node> select_node() {
-            return _open.top();
-        }
-
-        // Set a new theory for the syntactic constraints
-        void set_theory(std::unique_ptr<theory::Theory> theory){
-            _theory = std::move(theory);
-        }
-
-        [[nodiscard]] const theory::Theory* get_theory() const{
-            return _theory.get();
+            auto top_node{_open.top()};
+            _open.pop(); // remove current node from open
+            return top_node;
         }
 
         [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
@@ -220,6 +227,7 @@ namespace search {
                 if (all_goal) {
                     base_node->set_f(f(base_node.get()));
                     add_node(base_node);
+                    _ssource.request_stop();
                     return base_node;
                 }
             }
@@ -238,12 +246,10 @@ namespace search {
 
             vec_value_t best_evaluations(_evaluation_functions.size(), INF);
 
-            while (!is_empty()) {
+            while (!is_empty() and !_ssource.stop_requested() and _open.size() < _max_queue_size) {
                 _expanded_nodes++;
                 auto current = select_node();
 //std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
-                // remove current node from open
-                _open.pop();
                 auto current_evaluations = current->f();
                 auto children = expand_node(current.get());
 //std::cout << "[INFO] Total new expansions = " << children.size() << "\n";
@@ -255,6 +261,8 @@ namespace search {
                 }
 
                 for (const auto &child: children) {
+                    if (_ssource.stop_requested()) break;
+
 //std::cout << "[INFO] New child to evaluate:\n" << child->to_string() << "\n";
                     /// Checked in the expansion
                     //vps = child->get_program()->run( _gpp.get() );
@@ -281,6 +289,7 @@ namespace search {
                         if (all_goal) {
                             child->set_f(f(child.get()));
                             add_node(child);
+                            _ssource.request_stop();
                             return child;
                         }
                         else{
@@ -295,7 +304,7 @@ namespace search {
                             std::swap(old_open, _open);
                             // Also add the current child, just in case is a correct partial solution
                             old_open.push(child);
-                            while(not old_open.empty()){
+                            while(not old_open.empty()){ // TODO: Should we exit early if stop is requested (i.e. another thread has a solution)? It would leave the instance in a broken state.
                                 auto node = old_open.top();
                                 node->get_program()->run(_gpp.get()); // run again the program
                                 old_open.pop();
@@ -318,6 +327,9 @@ namespace search {
 
     private:
         std::unique_ptr<GeneralizedPlanningProblem> _gpp;
+        std::size_t _max_queue_size{std::numeric_limits<std::size_t>::max()};
+        std::stop_source _ssource;
+
         std::unique_ptr<theory::Theory> _theory;
 
         // In priority_queue, unique_ptr cannot be accessed through top() because is deleted
