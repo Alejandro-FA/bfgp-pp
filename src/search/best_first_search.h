@@ -59,6 +59,10 @@ namespace search {
             std::swap(_open, new_open);
         }
 
+        [[nodiscard]] GeneralizedPlanningProblem *get_generalized_planning_problem() {
+            return _gpp.get();
+        }
+
         [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
             auto p = node->get_program();
             auto vps = (run_program?p->run(_gpp.get(), false, only_active_instances):p->get_program_states());

@@ -164,81 +164,6 @@ namespace factories {
         return gpp;
     }
 
-    std::unique_ptr<search::BFS> make_bfs(const utils::ArgumentParser *arg_parser,
-                                          std::unique_ptr<GeneralizedPlanningProblem> gpp) {
-        auto bfs {std::make_unique<search::BFS>(std::move(gpp))};
-        bfs->set_theory(make_theory(arg_parser));
-        //if(arg_parser->get_theory_name() == "bitvec") engine->set_bitvec_theory(true); // ToDo: add it as an argument option?
-        return bfs;
-    }
-
-    // FIXME: In the future this will be unnecessary. The goal is to simply perform a deep copy of gpp. Since the
-    //  implementation of the deep copy is not yet available, we pass a lambda function that creates a new BFS object
-    //  (by using ArgumentParser and reading the input files).
-    std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
-                                                            std::unique_ptr<GeneralizedPlanningProblem> gpp) {
-        auto starting_nodes_per_thread = 4; // TODO: Add as an argument option?
-        return std::make_unique<search::ParallelBFS>([arg_parser]() {
-            // Create the Generalized Planning Problem
-            auto dom = factories::make_domain(arg_parser);
-            auto gd(factories::make_generalized_domain(arg_parser, std::move(dom)));
-            auto new_gpp = factories::make_generalized_planning_problem(arg_parser, std::move(gd));
-
-            auto th_name = arg_parser->get_theory_name();
-            if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
-                new_gpp->activate_actions_theory();
-            }
-            if(arg_parser->is_progressive()){
-                new_gpp->set_progressive(true);
-                for(size_t instance_id = 1; instance_id < new_gpp->get_num_instances(); ++instance_id)
-                    new_gpp->deactivate_instance(instance_id);
-            }
-
-            return make_bfs(arg_parser, std::move(new_gpp));
-        }, arg_parser->get_threads(), starting_nodes_per_thread);
-    }
-
-    std::unique_ptr<search::Engine> make_engine(const utils::ArgumentParser* arg_parser,
-                                                std::unique_ptr<GeneralizedPlanningProblem> gpp) {
-        // Build the search engine as a Best-First Search bounded by program lines with
-        // the corresponding generalized domain and problem
-        std::unique_ptr<search::Engine> engine;
-        if (arg_parser->get_threads() > 1) engine = make_parallel_bfs(arg_parser, std::move(gpp));
-        else engine = make_bfs(arg_parser, std::move(gpp));
-
-        // Set verbosity
-        engine->set_verbose(arg_parser->is_verbose());
-
-        // Add the list of evaluation functions to prioritize programs during the search
-        for (const auto &ef_name: arg_parser->get_evaluation_function_names()) {
-            if (ef_name == "lc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LoopCounter>());
-            else if (ef_name == "ed") engine->add_evaluation_function(std::make_unique<evaluation_functions::EuclideanDistance>());
-            else if (ef_name == "cwed") engine->add_evaluation_function(std::make_unique<evaluation_functions::ClosedWorldEuclideanDistance>());
-            else if (ef_name == "hd") engine->add_evaluation_function(std::make_unique<evaluation_functions::HammingDistance>());
-            else if (ef_name == "chd") engine->add_evaluation_function(std::make_unique<evaluation_functions::ClosestHammingDistance>());
-            else if (ef_name == "jd") engine->add_evaluation_function(std::make_unique<evaluation_functions::JaccardDistance>());
-            else if (ef_name == "nei") engine->add_evaluation_function(std::make_unique<evaluation_functions::NumEmptyInstructions>());
-            else if (ef_name == "mri") engine->add_evaluation_function(std::make_unique<evaluation_functions::MinRepeatedInstructions>());
-            else if (ef_name == "mnl") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxNestedLoop>());
-            else if (ef_name == "mll") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxLoopLines>());
-            else if (ef_name == "llc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LoopLinesCounter>());
-            else if (ef_name == "ilc") engine->add_evaluation_function(std::make_unique<evaluation_functions::InverseLoopCounter>());
-            //else if (ef_name == "lmc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LandmarkCount>());  // ToDo: add it after implementing landmarks
-            else if(ef_name == "hmax") engine->add_evaluation_function(std::make_unique<evaluation_functions::HMax>());
-            else if(ef_name == "hadd") engine->add_evaluation_function(std::make_unique<evaluation_functions::HAdd>());
-            else if(ef_name == "mi") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxIfs>());
-            else if(ef_name == "ac") engine->add_evaluation_function(std::make_unique<evaluation_functions::AccumulatedCost>());
-            else if(ef_name == "dll") engine->add_evaluation_function(std::make_unique<evaluation_functions::DistanceToLastLine>());
-            else if(ef_name == "astar") engine->add_evaluation_function(std::make_unique<evaluation_functions::AStar>());
-            else if(ef_name == "wastar") engine->add_evaluation_function(std::make_unique<evaluation_functions::WAStar>());
-            else {
-                // Redundant, this should never happen, it is already in the arg parser
-                utils::system_error("evaluation function " + ef_name + " is unknown.",ERROR_UNKNOWN_EVALUATION_FUNCTION);
-            }
-        }
-        return engine;
-    }
-
     std::tuple<int, std::string> check_program_constraints(
             GeneralizedPlanningProblem *gpp,
             instructions::Instruction *ins,
@@ -246,7 +171,7 @@ namespace factories {
             Program *prog,
             size_t dest_line,
             theory::Theory *theory
-            ){
+    ){
         if(nullptr == ins)
             return std::make_tuple(ERROR_INSTRUCTION_DOES_NOT_EXIST,
                                    "Instruction " + ins_name + " not found.");
@@ -295,6 +220,85 @@ namespace factories {
             programs.emplace_back(prog->copy());
         }
         return programs;
+    }
+
+    std::unique_ptr<search::BFS> make_bfs(const utils::ArgumentParser *arg_parser,
+                                          std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        auto bfs {std::make_unique<search::BFS>(std::move(gpp))};
+        bfs->set_theory(make_theory(arg_parser));
+        //if(arg_parser->get_theory_name() == "bitvec") engine->set_bitvec_theory(true); // ToDo: add it as an argument option?
+        return bfs;
+    }
+
+    // FIXME: In the future this will be unnecessary. The goal is to simply perform a deep copy of gpp. Since the
+    //  implementation of the deep copy is not yet available, we pass a lambda function that creates a new BFS object
+    //  (by using ArgumentParser and reading the input files).
+    std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
+                                                            std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        return std::make_unique<search::ParallelBFS>(
+            [arg_parser]() {
+                // Create the Generalized Planning Problem
+                auto dom = factories::make_domain(arg_parser);
+                auto gd(factories::make_generalized_domain(arg_parser, std::move(dom)));
+                auto new_gpp = factories::make_generalized_planning_problem(arg_parser, std::move(gd));
+
+                auto th_name = arg_parser->get_theory_name();
+                if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
+                    new_gpp->activate_actions_theory();
+                }
+                if(arg_parser->is_progressive()){
+                    new_gpp->set_progressive(true);
+                    for(size_t instance_id = 1; instance_id < new_gpp->get_num_instances(); ++instance_id)
+                        new_gpp->deactivate_instance(instance_id);
+                }
+
+                return make_bfs(arg_parser, std::move(new_gpp));
+            },
+            [arg_parser](GeneralizedPlanningProblem *gpp) { return make_programs(arg_parser, gpp); },
+            arg_parser->get_threads(),
+            arg_parser->get_num_starting_nodes()
+        );
+    }
+
+    std::unique_ptr<search::Engine> make_engine(const utils::ArgumentParser* arg_parser,
+                                                std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        // Build the search engine as a Best-First Search bounded by program lines with
+        // the corresponding generalized domain and problem
+        std::unique_ptr<search::Engine> engine;
+        if (arg_parser->get_threads() > 1) engine = make_parallel_bfs(arg_parser, std::move(gpp));
+        else engine = make_bfs(arg_parser, std::move(gpp));
+
+        // Set verbosity
+        engine->set_verbose(arg_parser->is_verbose());
+
+        // Add the list of evaluation functions to prioritize programs during the search
+        for (const auto &ef_name: arg_parser->get_evaluation_function_names()) {
+            if (ef_name == "lc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LoopCounter>());
+            else if (ef_name == "ed") engine->add_evaluation_function(std::make_unique<evaluation_functions::EuclideanDistance>());
+            else if (ef_name == "cwed") engine->add_evaluation_function(std::make_unique<evaluation_functions::ClosedWorldEuclideanDistance>());
+            else if (ef_name == "hd") engine->add_evaluation_function(std::make_unique<evaluation_functions::HammingDistance>());
+            else if (ef_name == "chd") engine->add_evaluation_function(std::make_unique<evaluation_functions::ClosestHammingDistance>());
+            else if (ef_name == "jd") engine->add_evaluation_function(std::make_unique<evaluation_functions::JaccardDistance>());
+            else if (ef_name == "nei") engine->add_evaluation_function(std::make_unique<evaluation_functions::NumEmptyInstructions>());
+            else if (ef_name == "mri") engine->add_evaluation_function(std::make_unique<evaluation_functions::MinRepeatedInstructions>());
+            else if (ef_name == "mnl") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxNestedLoop>());
+            else if (ef_name == "mll") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxLoopLines>());
+            else if (ef_name == "llc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LoopLinesCounter>());
+            else if (ef_name == "ilc") engine->add_evaluation_function(std::make_unique<evaluation_functions::InverseLoopCounter>());
+            //else if (ef_name == "lmc") engine->add_evaluation_function(std::make_unique<evaluation_functions::LandmarkCount>());  // ToDo: add it after implementing landmarks
+            else if(ef_name == "hmax") engine->add_evaluation_function(std::make_unique<evaluation_functions::HMax>());
+            else if(ef_name == "hadd") engine->add_evaluation_function(std::make_unique<evaluation_functions::HAdd>());
+            else if(ef_name == "mi") engine->add_evaluation_function(std::make_unique<evaluation_functions::MaxIfs>());
+            else if(ef_name == "ac") engine->add_evaluation_function(std::make_unique<evaluation_functions::AccumulatedCost>());
+            else if(ef_name == "dll") engine->add_evaluation_function(std::make_unique<evaluation_functions::DistanceToLastLine>());
+            else if(ef_name == "astar") engine->add_evaluation_function(std::make_unique<evaluation_functions::AStar>());
+            else if(ef_name == "wastar") engine->add_evaluation_function(std::make_unique<evaluation_functions::WAStar>());
+            else {
+                // Redundant, this should never happen, it is already in the arg parser
+                utils::system_error("evaluation function " + ef_name + " is unknown.",ERROR_UNKNOWN_EVALUATION_FUNCTION);
+            }
+        }
+        return engine;
     }
 }
 #endif //__FACTORY_METHODS_H__

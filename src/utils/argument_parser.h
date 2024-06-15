@@ -130,7 +130,7 @@ namespace utils {
                     " type: boolean (True, False; true, false; 1, 0);"
                     " default: false\n"
                     "  " + _threads_stype + ", " + _threads_type + " THREADS  available in \"synthesis\" mode; "
-                    " specifies the number of logical threads to use; "
+                    " specifies the number of threads to use for parallelized synthesis; "
                     " type: strictly positive integer; "
                     " default: 1\n"
                     "  " + _verbosity_stype + ", " + _verbosity_type + " for verbose output; type: boolean"
@@ -187,6 +187,12 @@ namespace utils {
                                 std::to_string(arg_vals.size()) + " found.");
                     parse_threads(arg_vals[0]);
                 }
+                else if(arg_type == _num_starting_nodes_ntype){
+                    if(arg_vals.size() != 1u)
+                        helper("Exactly one value for number of starting nodes expected but " +
+                               std::to_string(arg_vals.size()) + " found.");
+                    parse_num_starting_nodes(arg_vals[0]);
+                }
                 else if(arg_type == _output_file_ntype){
                     if(arg_vals.size() != 1u)
                         helper("Exactly one output file expected but " + std::to_string(arg_vals.size()) + " found.");
@@ -238,6 +244,8 @@ namespace utils {
                 _progressive = false;
             if(arg_map.find(_threads_ntype) == arg_map.end())
                 _threads = 1;
+            if(arg_map.find(_num_starting_nodes_ntype) == arg_map.end())
+                _num_starting_nodes = 10;
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
         }
@@ -405,8 +413,15 @@ namespace utils {
         void parse_threads(const std::string &str_threads){
             // Checking input type is a valid number
             if(not utils::is_number(str_threads))
-                helper("Wrong input format. The input number of logical threads " + str_threads + " is not a number.");
+                helper("Wrong input format. The input number of threads " + str_threads + " is not a number.");
             _threads = utils::str_to_num(str_threads);
+        }
+
+        void parse_num_starting_nodes(const std::string &str_num_starting_nodes){
+            // Checking input type is a valid number
+            if(not utils::is_number(str_num_starting_nodes))
+                helper("Wrong input format. The input number starting search nodes " + str_num_starting_nodes + " is not a number.");
+            _num_starting_nodes = utils::str_to_num(str_num_starting_nodes);
         }
 
         void parse_output_file(const std::string &str_output_file){
@@ -483,6 +498,10 @@ namespace utils {
             return _threads;
         }
 
+        [[nodiscard]] unsigned int get_num_starting_nodes() const{
+            return _num_starting_nodes;
+        }
+
         [[nodiscard]] std::string get_output_file() const{
             return _output_file;
         }
@@ -510,6 +529,8 @@ namespace utils {
                 return _num_extra_pointers_ntype;
             if (arg_type == _progressive_type or arg_type == _progressive_stype) return _progressive_ntype;
             if (arg_type == _threads_type or arg_type == _threads_stype) return _threads_ntype;
+            if (arg_type == _num_starting_nodes_type or arg_type == _num_starting_nodes_stype)
+                return _num_starting_nodes_ntype;
             if (arg_type == _output_file_type or arg_type == _output_file_stype) return _output_file_ntype;
             if (arg_type == _verbosity_type or arg_type == _verbosity_stype) return _verbosity_ntype;
             if (arg_type == _save_pddl_plans_type or arg_type == _save_pddl_plans_stype) return _save_pddl_plans_ntype;
@@ -529,6 +550,7 @@ namespace utils {
         int _num_extra_pointers;  // number of extra pointers per argument type
         bool _progressive; // optional for synthesis and repair only (default: false)
         unsigned int _threads; // optional for synthesis and repair only (default: 1)
+        unsigned int _num_starting_nodes; // optional for PARALLEL synthesis and repair only (default: 10)
         std::string _output_file;  // optional for synthesis and repair only (default: "")
         bool _verbose; // optional verbose output
         bool _save_pddl_plans; // optional save pddl action plans in a file
@@ -562,6 +584,9 @@ namespace utils {
         inline static const std::string _threads_type = "--threads";
         inline static const std::string _threads_stype = "-n"; // short type
         inline static const std::string _threads_ntype = "threads"; // normalized type
+        inline static const std::string _num_starting_nodes_type = "--num_starting_nodes";
+        inline static const std::string _num_starting_nodes_stype = "-N"; // short type
+        inline static const std::string _num_starting_nodes_ntype = "num_starting_nodes"; // normalized type
         inline static const std::string _infinite_detection_type = "--infinite-detection";
         inline static const std::string _infinite_detection_stype = "-inf"; // short type
         inline static const std::string _infinite_detection_ntype = "infinite_detection"; // normalized type
