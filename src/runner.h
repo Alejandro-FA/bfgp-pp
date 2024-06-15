@@ -19,7 +19,6 @@ namespace runner{
         // Build the search engine as a Best-First Search bounded by program lines with
         // the corresponding generalized domain and problem
         auto th_name = arg_parser->get_theory_name();
-        auto num_instances = gpp->get_num_instances();
         if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
             gpp->activate_actions_theory();
         }
@@ -36,6 +35,7 @@ namespace runner{
                 arg_parser->helper("The input program and the input number of program lines differ");
         }
 
+        auto num_instances = gpp->get_num_instances();
         auto engine = factories::make_engine(arg_parser.get(), std::move(gpp));
         stats_info->add_timer("engine");
         stats_info->timers_info("Engine created.", "gpp", "engine");

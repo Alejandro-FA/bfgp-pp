@@ -19,23 +19,40 @@ namespace search {
 
     class ParallelBFS : public Engine {
     public:
-        explicit ParallelBFS(BFSFactory auto &&f, unsigned int num_threads)
-            : _bfs_factory{std::forward<decltype(f)>(f)}, _num_threads{num_threads} {}
+        explicit ParallelBFS(BFSFactory auto &&f, unsigned int num_threads, unsigned int num_init_nodes)
+            : _bfs_factory{std::forward<decltype(f)>(f)}, _num_threads{num_threads}, _num_init_nodes{num_init_nodes} {}
 
         // FIXME: We cannot use the roots in the parallel search until we have a way to create a deep copy of them
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
-            // First generate multiple starting points to start a parallel search
-            auto& start_bfs = make_bfs(_num_threads);
-            auto possible_solution = start_bfs.solve(std::move(roots));
-            if (possible_solution != nullptr) return possible_solution;
-
-            // Then start a parallel search from each starting point
+            std::size_t queue_size_limit = _num_init_nodes * _num_threads;
+            std::size_t num_threads = _num_threads;
             std::vector<std::future<std::shared_ptr<Node>>> futures;
 
-            while (!start_bfs.is_empty()) {
+            for (unsigned int i = 0; i < _num_threads; ++i) {
                 auto& bfs{make_bfs()};
-                bfs.add_node(start_bfs.select_node());
-                auto future = std::async(std::launch::async, [&bfs]() { return bfs.solve(); });
+                auto future = std::async(std::launch::async, [&bfs, queue_size_limit, num_threads, i]() {
+                    // Start searching until the queue reaches a certain limit
+                    // All threads will explore the same first nodes (currently unavoidable)
+                    bfs.set_queue_size_limit(queue_size_limit);
+                    auto possible_solution = bfs.solve(); // FIXME: Ideally, here we would use the roots for repair mode
+                    if (possible_solution != nullptr) return possible_solution;
+
+                    // Recover the _open queue from bfs and replace it with an empty one
+                    std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> open;
+                    bfs.swap_queue(open);
+
+                    // Keep only a subset of the nodes such that each thread will have a queue with different nodes to explore
+                    auto init_size = open.size();
+                    for (std::size_t j = 0; j < init_size; ++j) {
+                        auto node{open.top()};
+                        open.pop();
+                        if (j % num_threads == i) bfs.add_node(std::move(node));
+                    }
+
+                    // Keep exploring the exclusive nodes of this thread until a solution is found or there are no more nodes left
+                    bfs.remove_queue_size_limit();
+                    return bfs.solve();
+                });
                 futures.push_back(std::move(future));
             }
 
@@ -58,9 +75,8 @@ namespace search {
         }
 
     private:
-        BFS& make_bfs(std::size_t max_queue_size = std::numeric_limits<std::size_t>::max()) {
+        BFS& make_bfs() {
             auto bfs{_bfs_factory()};
-            bfs->set_max_queue_size(max_queue_size);
             bfs->set_stop_source(_stop_source);
             for (const auto &ef : _evaluation_functions) bfs->add_evaluation_function(ef->copy());
             bfs->set_verbose(false);
@@ -68,9 +84,9 @@ namespace search {
             return *_engines.back();
         }
 
-        // const std::unique_ptr<GeneralizedPlanningProblem> _gpp_template; // Used to make copies of the GPP
         const std::function<std::unique_ptr<BFS>()> _bfs_factory;
         const unsigned int _num_threads{std::thread::hardware_concurrency()};
+        const unsigned int _num_init_nodes{1}; // (minimum) number of initial nodes per thread
         std::vector<std::unique_ptr<BFS>> _engines; // needed to keep the BFS instances alive (in particular, their GPPs)
         std::stop_source _stop_source{};
     };

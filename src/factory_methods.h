@@ -119,7 +119,7 @@ namespace factories {
 
         /// 3. Add instructions and flags from the theory
         auto theory_name = arg_parser->get_theory_name();
-        std::cout << "[INFO] Building theory: " << theory_name << "\n";
+        if (arg_parser->is_verbose()) std::cout << "[INFO] Building theory: " << theory_name << "\n";
         if (theory_name == "assembler") theory::Assembler::build_theory(gd.get());
         else if (theory_name == "cpp") theory::CPlusPlus::build_theory(gd.get());
         //else if (theory_name == "bitvec") theory::Bitvec::build_theory(gd.get());  // ToDo: implement theory
@@ -142,7 +142,7 @@ namespace factories {
                 arg_parser->get_infinite_detection(),
                 arg_parser->get_problem_folder());
 
-        std::cout << "[INFO] Infinite detection: " << (gpp->get_infinite_detection()?"activated":"deactivated") << "\n";
+        if (arg_parser->is_verbose()) std::cout << "[INFO] Infinite detection: " << (gpp->get_infinite_detection()?"activated":"deactivated") << "\n";
 
         auto problem_folder = arg_parser->get_problem_folder();
 
@@ -177,6 +177,7 @@ namespace factories {
     //  (by using ArgumentParser and reading the input files).
     std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
                                                             std::unique_ptr<GeneralizedPlanningProblem> gpp) {
+        auto starting_nodes_per_thread = 4; // TODO: Add as an argument option?
         return std::make_unique<search::ParallelBFS>([arg_parser]() {
             // Create the Generalized Planning Problem
             auto dom = factories::make_domain(arg_parser);
@@ -194,7 +195,7 @@ namespace factories {
             }
 
             return make_bfs(arg_parser, std::move(new_gpp));
-        }, arg_parser->get_threads());
+        }, arg_parser->get_threads(), starting_nodes_per_thread);
     }
 
     std::unique_ptr<search::Engine> make_engine(const utils::ArgumentParser* arg_parser,

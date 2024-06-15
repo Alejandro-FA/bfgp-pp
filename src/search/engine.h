@@ -17,7 +17,7 @@ public:
 	
 	// Add a new heuristic to the engine
 	void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ){
-        std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
+        if (_verbose) std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
         _evaluation_functions.emplace_back(std::move(new_ef) );
     }
 

@@ -5,6 +5,7 @@
 #ifndef __SEARCH_BEST_FIRST_SEARCH_H__
 #define __SEARCH_BEST_FIRST_SEARCH_H__
 
+#include <unordered_set>
 #include <stop_token>
 #include "engine.h"
 
@@ -15,10 +16,16 @@ namespace search {
             //_bitvec_theory = false;
         }
 
-        void set_max_queue_size(std::size_t max_queue_size) {
-            _max_queue_size = max_queue_size;
+        /// Sets a limit to the _open queue size. If this limit is reached, the search will stop.
+        void set_queue_size_limit(std::size_t limit) {
+            _queue_size_limit = limit;
         }
 
+        void remove_queue_size_limit() {
+            _queue_size_limit = std::numeric_limits<std::size_t>::max();
+        }
+
+        /// Stop source used to interrupt the search when another thread has found a solution.
         void set_stop_source(std::stop_source ssource) {
             _ssource = std::move(ssource);
         }
@@ -46,6 +53,10 @@ namespace search {
             auto top_node{_open.top()};
             _open.pop(); // remove current node from open
             return top_node;
+        }
+
+        void swap_queue(std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> &new_open) {
+            std::swap(_open, new_open);
         }
 
         [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
@@ -199,6 +210,7 @@ namespace search {
         }
 
         void print_node(Node *n) const {
+            if (not _verbose) return;
             std::cout << "[ENGINE]\n";
             std::cout << "Node id=" << n->get_id() << "\n";
             std::cout << "Expanded=" << _expanded_nodes << "\n";
@@ -246,7 +258,7 @@ namespace search {
 
             vec_value_t best_evaluations(_evaluation_functions.size(), INF);
 
-            while (!is_empty() and !_ssource.stop_requested() and _open.size() < _max_queue_size) {
+            while (!is_empty() and !_ssource.stop_requested() and _open.size() < _queue_size_limit) {
                 _expanded_nodes++;
                 auto current = select_node();
 //std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
@@ -256,9 +268,10 @@ namespace search {
                 if (current_evaluations < best_evaluations) {
                     best_evaluations = current_evaluations;
                     print_node(current.get());
-                } else if (_verbose and _expanded_nodes % PROGRAM_FREQUENCY == 0) {
-                    print_node(current.get());
                 }
+                // else if (_verbose and _expanded_nodes % PROGRAM_FREQUENCY == 0) {
+                //     print_node(current.get());
+                // }
 
                 for (const auto &child: children) {
                     if (_ssource.stop_requested()) break;
@@ -283,7 +296,7 @@ namespace search {
                     child->set_id(_evaluated_nodes++);
 
                     if (is_goal(child.get(), false, true)) {
-                        std::cout << "[INFO] Solution candidate!\n" << child->to_string();
+                        if (_verbose) std::cout << "[INFO] Solution candidate!\n" << child->to_string();
                         // if the program solves all instances finish
                         bool all_goal = is_goal(child.get(), true, false);
                         if (all_goal) {
@@ -296,7 +309,7 @@ namespace search {
                             // Get the failure id
                             assert(_last_failed_instance_idx != -1);
                             assert(not _gpp->is_instance_active(_last_failed_instance_idx));
-                            std::cout << "[INFO] Failure on instance " << (_last_failed_instance_idx + 1) << " reevaluating... ";
+                            if (_verbose) std::cout << "[INFO] Failure on instance " << (_last_failed_instance_idx + 1) << " reevaluating... ";
                             // activate it
                             _gpp->activate_instance(_last_failed_instance_idx);
                             // reevaluate queue
@@ -312,7 +325,7 @@ namespace search {
                                 node->set_id(_evaluated_nodes++); // Node reevaluated!
                                 add_node(node);
                             }
-                            std::cout << " done!\n";
+                            if (_verbose) std::cout << " done!\n";
                         }
                     }
                     else {
@@ -327,7 +340,7 @@ namespace search {
 
     private:
         std::unique_ptr<GeneralizedPlanningProblem> _gpp;
-        std::size_t _max_queue_size{std::numeric_limits<std::size_t>::max()};
+        std::size_t _queue_size_limit{std::numeric_limits<std::size_t>::max()};
         std::stop_source _ssource;
 
         std::unique_ptr<theory::Theory> _theory;
