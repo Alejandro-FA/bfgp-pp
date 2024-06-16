@@ -142,8 +142,6 @@ namespace factories {
                 arg_parser->get_infinite_detection(),
                 arg_parser->get_problem_folder());
 
-        if (arg_parser->is_verbose()) std::cout << "[INFO] Infinite detection: " << (gpp->get_infinite_detection()?"activated":"deactivated") << "\n";
-
         auto problem_folder = arg_parser->get_problem_folder();
 
         // Parse each input instance and add it to the GP problem

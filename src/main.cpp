@@ -17,6 +17,7 @@ int main(  int argc, const char* argv[] ){
     stats_info->timers_info("Generalized Domain created.", "domain", "gd");
 
 	// Create the Generalized Planning Problem object
+    std::cout << "[INFO] Infinite detection: " << (arg_parser->get_infinite_detection()?"activated":"deactivated") << "\n";
     auto gpp = factories::make_generalized_planning_problem(arg_parser.get(), std::move(gd));
 
     //std::cout << gpp->to_string(true) << std::endl;
