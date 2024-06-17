@@ -16,7 +16,7 @@ public:
 	virtual std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) = 0;
 	
 	// Add a new heuristic to the engine
-	void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ){
+	virtual void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ){
         if (_verbose) std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
         _evaluation_functions.emplace_back(std::move(new_ef) );
     }

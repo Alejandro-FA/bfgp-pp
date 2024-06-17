@@ -25,16 +25,18 @@ namespace search {
 
     class ParallelBFS : public Engine {
     public:
-        explicit ParallelBFS(BFSFactory auto &&f, RootsFactory auto &&g, unsigned int num_threads, unsigned int num_init_nodes = 8)
+        explicit ParallelBFS(BFSFactory auto &&f, RootsFactory auto &&g, unsigned int num_threads, unsigned int num_init_nodes = 10)
             : _bfs_factory{std::forward<decltype(f)>(f)}, _roots_factory{std::forward<decltype(g)>(g)},
-            _num_threads{num_threads}, _num_init_nodes{num_init_nodes} {}
+            _num_threads{num_threads}, _num_init_nodes{num_init_nodes} {
+            for (unsigned int i = 0; i < _num_threads; ++i) make_bfs();
+        }
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             std::size_t queue_size_limit = _num_init_nodes * _num_threads;
             std::vector<std::future<std::shared_ptr<Node>>> futures;
 
             for (unsigned int i = 0; i < _num_threads; ++i) {
-                auto& bfs{make_bfs()};
+                auto& bfs{*_engines[i]};
                 auto copied_roots = roots.empty() ? std::vector<std::unique_ptr<Program>>{} : _roots_factory(bfs.get_generalized_planning_problem());
                 auto future = std::async(std::launch::async, [&bfs, queue_size_limit, i,  n{_num_threads}](std::vector<std::unique_ptr<Program>> r) {
                     // Start searching until the queue reaches a certain limit
@@ -80,6 +82,11 @@ namespace search {
             return evaluated;
         }
 
+        void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ) override {
+            for (const auto &bfs : _engines) bfs->add_evaluation_function(new_ef->copy());
+            Engine::add_evaluation_function(std::move(new_ef));
+        }
+
     private:
         BFS& make_bfs() {
             auto bfs{_bfs_factory()};
@@ -93,7 +100,7 @@ namespace search {
         const std::function<std::unique_ptr<BFS>()> _bfs_factory; // Function to generate a new BFS instance with its own GPP
         const std::function<std::vector<std::unique_ptr<Program>>(GeneralizedPlanningProblem *)> _roots_factory; // Function to read and generate roots for a given GPP
         const unsigned int _num_threads{std::thread::hardware_concurrency()};
-        const unsigned int _num_init_nodes{8}; // (minimum) number of initial search nodes per thread
+        const unsigned int _num_init_nodes{10}; // (minimum) number of initial search nodes per thread
         std::vector<std::unique_ptr<BFS>> _engines; // needed to keep the BFS instances alive (in particular, their GPPs)
         std::stop_source _stop_source{};
     };
