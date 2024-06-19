@@ -9,6 +9,7 @@
 #include <concepts>
 #include "engine.h"
 #include "best_first_search.h"
+#include "parallel_bfs.h"
 
 namespace search {
     class TestParallelBFS : public Engine {
