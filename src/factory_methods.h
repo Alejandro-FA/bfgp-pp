@@ -44,6 +44,7 @@
 
 #include "search/best_first_search.h"
 #include "search/parallel_bfs.h"
+#include "search/test_parallel_bfs.h"
 #include "theories/action_ram.h"
 
 
@@ -231,9 +232,9 @@ namespace factories {
     // FIXME: In the future this will be unnecessary. The goal is to simply perform a deep copy of gpp. Since the
     //  implementation of the deep copy is not yet available, we pass a lambda function that creates a new BFS object
     //  (by using ArgumentParser and reading the input files).
-    std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
+    std::unique_ptr<search::TestParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
                                                             std::unique_ptr<GeneralizedPlanningProblem> gpp) {
-        return std::make_unique<search::ParallelBFS>(
+        return std::make_unique<search::TestParallelBFS>(
             [arg_parser]() {
                 // Create the Generalized Planning Problem
                 auto dom = factories::make_domain(arg_parser);

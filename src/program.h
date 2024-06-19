@@ -43,10 +43,14 @@ public:
 	
 	~Program()= default;
 
-    /// FIXME: We will need to make deep copies for thread-safety. The argument needs to be constant.
 	[[nodiscard]] std::unique_ptr<Program> copy() {
         return std::make_unique<Program>(this);
 	}
+
+    /// FIXME: We will need to make deep copies for thread-safety.
+    [[nodiscard]] std::unique_ptr<Program> clone(const GeneralizedDomain *gd) { // FIXME: Should be const once the deep_copy is implemented
+        return std::make_unique<Program>(this);
+    }
 
     void reset_performance_variables(){
         _num_of_steps = 0;
