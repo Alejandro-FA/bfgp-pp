@@ -12,59 +12,45 @@
 
 namespace search {
     template<typename F>
-    concept BFSFactory = requires(F&& f) {
+    concept GPPFactory = requires(F&& f) {
         requires std::invocable<F>;
-        { std::invoke(std::forward<F>(f)) } -> std::same_as<std::unique_ptr<BFS>>;
-    };
-
-    template<typename F>
-    concept RootsFactory = requires(F&& f, GeneralizedPlanningProblem *gpp) {
-        requires std::invocable<F, GeneralizedPlanningProblem *>;
-        { std::invoke(std::forward<F>(f), gpp) } -> std::same_as<std::vector<std::unique_ptr<Program>>>;
+        { std::invoke(std::forward<F>(f)) } -> std::same_as<std::unique_ptr<GeneralizedPlanningProblem>>;
     };
 
     class ParallelBFS : public Engine {
     public:
-        explicit ParallelBFS(BFSFactory auto &&f, RootsFactory auto &&g, unsigned int num_threads, unsigned int num_init_nodes = 10)
-            : _bfs_factory{std::forward<decltype(f)>(f)}, _roots_factory{std::forward<decltype(g)>(g)},
-            _num_threads{num_threads}, _num_init_nodes{num_init_nodes} {
+        /// \param num_threads Maximum number of threads to use
+        /// \param gpp_factory Function to create new instances of the GeneralizedPlanningProblem to solve.
+        explicit ParallelBFS(std::unique_ptr<theory::Theory> theory, unsigned int num_threads, GPPFactory auto &&gpp_factory)
+                : Engine{std::move(theory)}, _num_threads {num_threads}, _gpp_factory {std::forward<decltype(gpp_factory)>(gpp_factory)} {
             for (unsigned int i = 0; i < _num_threads; ++i) make_bfs();
         }
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
-            std::size_t queue_size_limit = _num_init_nodes * _num_threads;
+            // Generate initial nodes (at least one root node per thread)
+            auto& init_bfs {make_bfs()};
+            init_bfs.set_queue_size_limit(_num_threads * 10);
+            auto possible_solution {init_bfs.solve(std::move(roots))};
+            if (possible_solution != nullptr) return possible_solution;
+
+            // Distribute the initial nodes among the threads
+            unsigned int thread_idx = 0;
+            while (not init_bfs.is_empty()) {
+                auto gpp {_engines[thread_idx]->get_generalized_planning_problem()};
+                _engines[thread_idx]->add_node(init_bfs.select_node()->copy_to(gpp));
+                thread_idx = (thread_idx + 1) % _num_threads;
+            }
+
+            // Once each thread has its own initial nodes, start the parallel search
             std::vector<std::future<std::shared_ptr<Node>>> futures;
-
             for (unsigned int i = 0; i < _num_threads; ++i) {
-                auto& bfs{*_engines[i]};
-                auto copied_roots = roots.empty() ? std::vector<std::unique_ptr<Program>>{} : _roots_factory(bfs.get_generalized_planning_problem());
-                auto future = std::async(std::launch::async, [&bfs, queue_size_limit, i,  n{_num_threads}](std::vector<std::unique_ptr<Program>> r) {
-                    // Start searching until the queue reaches a certain limit
-                    // All threads will explore the same first nodes (currently unavoidable)
-                    bfs.set_queue_size_limit(queue_size_limit);
-                    auto possible_solution = bfs.solve(std::move(r));
-                    if (possible_solution != nullptr) return possible_solution;
-
-                    // Recover the _open queue from bfs and replace it with an empty one
-                    std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> open;
-                    bfs.swap_queue(open);
-
-                    // Keep only a subset of the nodes such that each thread will have a queue with different nodes to explore
-                    auto init_size = open.size();
-                    for (std::size_t j = 0; j < init_size; ++j) {
-                        auto node{open.top()};
-                        open.pop();
-                        if (j % n == i) bfs.add_node(std::move(node));
-                    }
-
-                    // Keep exploring the exclusive nodes of this thread until a solution is found or there are no more nodes left
-                    bfs.remove_queue_size_limit();
-                    return bfs.solve();
-                }, std::move(copied_roots));
+                auto& bfs {*_engines[i]};
+                auto future { std::async(std::launch::async, [&bfs]() { return bfs.solve(); }) };
                 futures.push_back(std::move(future));
             }
 
-            std::shared_ptr<Node> solution{nullptr};
+            // Wait for all threads to finish and return the solution
+            std::shared_ptr<Node> solution {nullptr};
             for (auto &future: futures) // Ensure that all threads have finished to avoid data races
                 if (auto result = future.get(); result != nullptr) solution = result;
             return solution;
@@ -89,7 +75,7 @@ namespace search {
 
     private:
         BFS& make_bfs() {
-            auto bfs{_bfs_factory()};
+            auto bfs {std::make_unique<BFS>(_theory->copy(), _gpp_factory())};
             bfs->set_stop_source(_stop_source);
             for (const auto &ef : _evaluation_functions) bfs->add_evaluation_function(ef->copy());
             bfs->set_verbose(false);
@@ -97,12 +83,10 @@ namespace search {
             return *_engines.back();
         }
 
-        const std::function<std::unique_ptr<BFS>()> _bfs_factory; // Function to generate a new BFS instance with its own GPP
-        const std::function<std::vector<std::unique_ptr<Program>>(GeneralizedPlanningProblem *)> _roots_factory; // Function to read and generate roots for a given GPP
-        const unsigned int _num_threads{std::thread::hardware_concurrency()};
-        const unsigned int _num_init_nodes{10}; // (minimum) number of initial search nodes per thread
-        std::vector<std::unique_ptr<BFS>> _engines; // needed to keep the BFS instances alive (in particular, their GPPs)
-        std::stop_source _stop_source{};
+        const unsigned int _num_threads {std::thread::hardware_concurrency()};
+        const std::function<std::unique_ptr<GeneralizedPlanningProblem>()> _gpp_factory;
+        std::vector<std::unique_ptr<BFS>> _engines; // needed to keep the BFS instances alive (in particular, their GPPs) // TODO: store in stack, not in heap
+        std::stop_source _stop_source {};
     };
 }
 

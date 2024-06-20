@@ -13,16 +13,6 @@ public:
 	/// engine does not have to reason about it
 	explicit GeneralizedDomain(std::unique_ptr<const Domain> domain): _domain{std::move(domain)} {};
 
-    /// Owns _domain, _instructions, _pointers and _flags
-    ~GeneralizedDomain() = default;
-
-    [[nodiscard]] std::unique_ptr<GeneralizedDomain> deep_copy() const {
-        throw std::logic_error{"Not implemented yet"};
-        auto gd{std::make_unique<GeneralizedDomain>(_domain->deep_copy())};
-        // TODO: Add instructions, pointers and flags
-        return gd;
-    }
-
     void set_program_lines(size_t program_lines){
         _program_lines = program_lines;
     }

@@ -23,35 +23,10 @@ public:
 
     };
 
-    /// Owns _gd and _instances
-    ~GeneralizedPlanningProblem() = default;
-
-    /// Ensure that a copyable class has a default constructor
-    /// https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#c43-ensure-that-a-copyable-class-has-a-default-constructor
-    GeneralizedPlanningProblem() = default;
-
-    [[nodiscard]] std::unique_ptr<GeneralizedPlanningProblem> deep_copy() const {
-        throw std::logic_error{"Not implemented yet"};
-        auto gpp{std::make_unique<GeneralizedPlanningProblem>(
-            _gd->deep_copy(),
-            _infinite_detection,
-            //_use_landmarks,
-            _problem_folder
-        )};
-        gpp->set_progressive(_progressive);
-        if (is_actions_theory()) gpp->activate_actions_theory();
-        // TODO: Add instances
-        gpp->_active_instances = _active_instances;
-        gpp->_active_instance_idxs = _active_instance_idxs;
-        gpp->_all_instance_idxs = _all_instance_idxs;
-        return gpp;
-    }
-
     [[nodiscard]] const GeneralizedDomain* get_generalized_domain() const{
         return _gd.get();
     }
 
-    /// FIXME: Ideally getters should be read-only. Do not mark this method const, as it can lead to a modification of the instance.
     [[nodiscard]] GeneralizedDomain* get_generalized_domain() {
         return _gd.get();
     }
@@ -71,17 +46,16 @@ public:
         _all_instance_idxs.insert(_instances.size()-1); // save the instance idx
 	}
 
-	[[nodiscard]] const Instance* get_instance(size_t idx) const{
-        assert(idx < _instances.size());
-		return _instances[idx].get();
-	}
-
-    /// FIXME: Ideally getters should be read-only. Do not mark this method const, as it can lead to a modification of the instance.
     [[nodiscard]] Instance* get_instance(size_t idx) {
         assert(idx < _instances.size());
         return _instances[idx].get();
 
     }
+
+	[[nodiscard]] const Instance* get_instance(size_t idx) const{ // Const overload
+        assert(idx < _instances.size());
+		return _instances[idx].get();
+	}
 
 	[[nodiscard]] size_t get_num_instances() const{
 		return _instances.size();
@@ -169,10 +143,10 @@ public:
 private:
     std::unique_ptr<GeneralizedDomain> _gd; // All search engines will share the same domain
 
-    bool _infinite_detection{false};
+    bool _infinite_detection {false};
     //bool _use_landmarks{false};
-    bool _actions_theory{false};
-    bool _progressive{false};
+    bool _actions_theory {false};
+    bool _progressive {false};
     std::string _problem_folder;
 
     std::vector< std::unique_ptr<Instance> > _instances;

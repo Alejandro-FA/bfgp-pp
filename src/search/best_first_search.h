@@ -12,7 +12,8 @@
 namespace search {
     class BFS : public Engine {
     public:
-        explicit BFS(std::unique_ptr<GeneralizedPlanningProblem> gpp) : _gpp{std::move(gpp)} {
+        explicit BFS(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp)
+            : Engine{std::move(theory)}, _gpp{std::move(gpp)} {
             //_bitvec_theory = false;
         }
 
@@ -28,15 +29,6 @@ namespace search {
         /// Stop source used to interrupt the search when another thread has found a solution.
         void set_stop_source(std::stop_source ssource) {
             _ssource = std::move(ssource);
-        }
-
-        /*void set_bitvec_theory(bool is_bitvec){
-            _bitvec_theory = is_bitvec;
-        }*/
-
-        // Set a new theory for the syntactic constraints
-        void set_theory(std::unique_ptr<theory::Theory> theory){
-            _theory = std::move(theory);
         }
 
         [[nodiscard]] bool is_empty() const {
@@ -346,8 +338,6 @@ namespace search {
         std::unique_ptr<GeneralizedPlanningProblem> _gpp;
         std::size_t _queue_size_limit{std::numeric_limits<std::size_t>::max()};
         std::stop_source _ssource;
-
-        std::unique_ptr<theory::Theory> _theory;
 
         // In priority_queue, unique_ptr cannot be accessed through top() because is deleted
         std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> _open;

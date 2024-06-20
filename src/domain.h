@@ -15,50 +15,6 @@ public:
         add_object_type(std::make_unique<ObjectType>("object",nullptr)); // create base "object" type
     }
 
-    /// Owns _object_types, _constants, _functions and _actions
-	~Domain() = default;
-
-    [[nodiscard]] std::unique_ptr<Domain> deep_copy() const{
-        throw std::logic_error{"Not implemented yet"};
-        auto dom{std::make_unique<Domain>(this->get_name())};
-
-        // Add all object types (except the base object type, which is already created)
-        for(const auto& ot : _object_types | std::views::drop(1)) {
-            auto ot_super_name{ot->get_supertype()->get_name()}; // Assumes that the only type with no supertype is "object"
-            auto ot_super_ptr{dom->get_object_type(ot_super_name)};
-            dom->add_object_type(std::make_unique<ObjectType>(ot->get_name(), ot_super_ptr));
-        }
-        // Add all constants
-        for(const auto& c : _constants) {
-            auto c_type_name{c->get_type()->get_name()};
-            auto c_type_ptr{dom->get_object_type(c_type_name)};
-            dom->add_constant(std::make_unique<Object>(c->get_name(), dom->get_next_const_id(), c_type_ptr));
-        }
-        // Add all functions
-        for(const auto& f : _functions) {
-            auto function{std::make_unique<Function>(f->get_name(), dom->get_next_func_id())};
-            id_type local_id{0};
-            for (const auto &p: f->get_parameters()) {
-                auto p_type_name{p->get_type()->get_name()};
-                auto p_type_ptr{dom->get_object_type(p_type_name)};
-                function->add_parameter(std::make_unique<Object>(p->get_name(), local_id++, p_type_ptr));
-            }
-            dom->add_function(std::move(function));
-        }
-        // Add all actions
-        for(const auto& a : _actions) {
-            auto action{std::make_unique<Action>(a->get_name(), a->get_type())};
-            for(const auto& p : a->get_parameters()) {
-                auto p_type_name{p->get_type()->get_name()};
-                auto p_type_ptr{dom->get_object_type(p_type_name)};
-                action->add_parameter(std::make_unique<Object>(p->get_name(), action->get_next_parameter_id(), p_type_ptr));
-            }
-            // TODO: Add preconditions and effects
-        }
-
-        return dom;
-    }
-
     ///
     /// Setter functions
     ///

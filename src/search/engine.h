@@ -9,6 +9,8 @@
 namespace search{
 class Engine{
 public:
+    explicit Engine (std::unique_ptr<theory::Theory> theory) : _theory {std::move(theory)} {}
+
     /// Owns _evaluation_functions
 	virtual ~Engine() = default;
 
@@ -20,6 +22,10 @@ public:
         if (_verbose) std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
         _evaluation_functions.emplace_back(std::move(new_ef) );
     }
+
+    /*void set_bitvec_theory(bool is_bitvec){
+        _bitvec_theory = is_bitvec;
+    }*/
 
     void set_verbose(bool verbose){
         _verbose = verbose;
@@ -40,6 +46,7 @@ public:
 protected:
     bool _verbose{false};
     std::vector<std::unique_ptr<const evaluation_functions::EvaluationFunction>> _evaluation_functions;
+    const std::unique_ptr<theory::Theory> _theory;
 	value_t _evaluated_nodes{0};
 	value_t _expanded_nodes{0};
 };

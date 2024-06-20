@@ -15,8 +15,8 @@ namespace search {
         /// Owns _program
         ~Node() = default;
 
-        [[nodiscard]] std::shared_ptr<Node> clone(GeneralizedDomain *gd) const {
-            return std::make_shared<Node>(_program->clone(gd), _evaluations, _id);
+        [[nodiscard]] std::shared_ptr<Node> copy_to(GeneralizedPlanningProblem *gpp) const {
+            return std::make_shared<Node>(_program->copy_to(gpp), _evaluations, _id);
         }
 
         void set_f(const vec_value_t &eval) {

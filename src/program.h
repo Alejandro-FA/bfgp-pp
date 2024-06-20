@@ -47,6 +47,18 @@ public:
         return std::make_unique<Program>(this);
 	}
 
+    [[nodiscard]] std::unique_ptr<Program> copy_to(GeneralizedPlanningProblem* gpp) {
+        auto gd {gpp->get_generalized_domain()};
+        auto new_program = std::make_unique<Program>(gpp);
+        for (std::size_t i = 0; i < _instructions.size(); ++i) {
+            if (_instructions[i] != nullptr) {
+                auto new_ins = gd->get_instruction(_instructions[i]->get_name(true));
+                new_program->set_instruction(i, new_ins);
+            };
+        }
+        return new_program;
+    }
+
     /// FIXME: We will need to make deep copies for thread-safety.
     [[nodiscard]] std::unique_ptr<Program> clone(GeneralizedDomain *gd) {
         auto program_copy = std::make_unique<Program>(this);
