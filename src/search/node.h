@@ -15,7 +15,7 @@ namespace search {
         /// Owns _program
         ~Node() = default;
 
-        [[nodiscard]] std::shared_ptr<Node> clone(const GeneralizedDomain *gd) const {
+        [[nodiscard]] std::shared_ptr<Node> clone(GeneralizedDomain *gd) const {
             return std::make_shared<Node>(_program->clone(gd), _evaluations, _id);
         }
 

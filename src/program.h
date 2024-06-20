@@ -48,8 +48,14 @@ public:
 	}
 
     /// FIXME: We will need to make deep copies for thread-safety.
-    [[nodiscard]] std::unique_ptr<Program> clone(const GeneralizedDomain *gd) { // FIXME: Should be const once the deep_copy is implemented
-        return std::make_unique<Program>(this);
+    [[nodiscard]] std::unique_ptr<Program> clone(GeneralizedDomain *gd) {
+        auto program_copy = std::make_unique<Program>(this);
+        for (std::size_t i = 0; i < program_copy->_instructions.size(); ++i) {
+            auto old_ins = program_copy->_instructions[i];
+            auto new_ins = gd->get_instruction(old_ins->get_name(true));
+            program_copy->_instructions[i] = new_ins;
+        }
+        return program_copy;
     }
 
     void reset_performance_variables(){
