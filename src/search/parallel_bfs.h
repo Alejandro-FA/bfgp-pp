@@ -17,6 +17,34 @@ namespace search {
         { std::invoke(std::forward<F>(f)) } -> std::same_as<std::unique_ptr<GeneralizedPlanningProblem>>;
     };
 
+    class SearchWorker : public BFS {
+    public:
+        explicit SearchWorker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
+                              std::size_t id, const std::vector<std::unique_ptr<SearchWorker>>& other_workers)
+                : BFS{std::move(theory), std::move(gpp)}, _id{id}, _num_threads{other_workers.size()},
+                _next_send_id{(id + 1) % other_workers.size()}, _other_workers{other_workers} {}
+
+        [[nodiscard]] std::shared_ptr<Node> operator()() {
+            return _other_workers[_id]->solve();
+        }
+
+        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) override {
+            std::vector<std::shared_ptr<Node>> expanded_nodes {BFS::expand_node(node)};
+            for (const auto& expanded_node : expanded_nodes) {
+                const auto &other {_other_workers[_next_send_id]};
+                other->add_node(expanded_node->copy_to(other->get_generalized_planning_problem()));
+                _next_send_id = (_next_send_id + 1) % _num_threads;
+            }
+            return expanded_nodes;
+        }
+
+    private:
+        std::size_t _id;
+        std::size_t _num_threads;
+        std::size_t _next_send_id;
+        const std::vector<std::unique_ptr<SearchWorker>>& _other_workers;
+    };
+
     class ParallelBFS : public Engine {
     public:
         /// \param num_threads Maximum number of threads to use
