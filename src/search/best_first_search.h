@@ -17,31 +17,35 @@ namespace search {
             //_bitvec_theory = false;
         }
 
-        /// Sets a limit to the _open queue size. If this limit is reached, the search will stop.
-        void set_queue_size_limit(std::size_t limit) {
-            _queue_size_limit = limit;
-        }
-
-        void remove_queue_size_limit() {
-            _queue_size_limit = std::numeric_limits<std::size_t>::max();
-        }
-
         /// Stop source used to interrupt the search when another thread has found a solution.
         void set_stop_source(std::stop_source ssource) {
             _ssource = std::move(ssource);
         }
 
-        [[nodiscard]] bool is_empty() const {
+        /// Sets a limit to the _open queue size. If this limit is reached, the search will stop.
+        void set_open_size_limit(std::size_t limit) {
+            _queue_size_limit = limit;
+        }
+
+        void remove_open_size_limit() {
+            _queue_size_limit = std::numeric_limits<std::size_t>::max();
+        }
+
+        [[nodiscard]] virtual bool is_empty() const {
             return _open.empty();
         }
 
-        void add_node(std::shared_ptr<Node> node) {
+        [[nodiscard]] virtual std::size_t open_size() const {
+            return _open.size();
+        }
+
+        virtual void add_node(std::shared_ptr<Node> node) {
             /// Before adding the node, clear up the program states to save memory
             node->get_program()->clear_program_states();
             _open.push(std::move(node));
         }
 
-        [[nodiscard]] std::shared_ptr<Node> select_node() {
+        [[nodiscard]] virtual std::shared_ptr<Node> select_node() {
             auto top_node{_open.top()};
             _open.pop(); // remove current node from open
             return top_node;
@@ -207,8 +211,21 @@ namespace search {
             std::cout << "Node id=" << n->get_id() << "\n";
             std::cout << "Expanded=" << _expanded_nodes << "\n";
             std::cout << "Evaluated=" << _evaluated_nodes << "\n";
-            std::cout << "Open queue size=" << _open.size() << "\n";
+            std::cout << "Open queue size=" << open_size() << "\n";
             std::cout << n->to_string() << "\n";
+        }
+
+        virtual void reevaluate_queue() {
+            std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> old_open;
+            std::swap(old_open, _open);
+            while(not old_open.empty()){ // TODO: Should we exit early if stop is requested (i.e. another thread has a solution)? It would lose some nodes (although they are probably not needed)
+                auto node = old_open.top();
+                node->get_program()->run(_gpp.get()); // run again the program
+                old_open.pop();
+                node->set_f(f(node.get()));
+                node->set_id(_evaluated_nodes++); // Node reevaluated!
+                add_node(node);
+            }
         }
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
@@ -237,7 +254,7 @@ namespace search {
             }
 
             _evaluated_nodes = 0;
-            bool add_nodes {_open.empty()}; // Only add nodes if the queue is empty (otherwise we could repeat work of other threads)
+            bool add_nodes {is_empty()}; // Only add nodes if the queue is empty (otherwise we could repeat work of other threads)
             for(int idx = roots.size()-1; idx >= 0; idx--){
 //std::cout << "[INFO] new root node " << std::endl << roots[idx]->to_string(true) << std::endl;
                 _theory->set_initial_program(_gpp.get(), roots[idx].get());
@@ -253,7 +270,7 @@ namespace search {
 
             vec_value_t best_evaluations(_evaluation_functions.size(), INF);
 
-            while (!is_empty() and !_ssource.stop_requested() and _open.size() < _queue_size_limit) {
+            while (!is_empty() and !_ssource.stop_requested() and open_size() < _queue_size_limit) {
                 _expanded_nodes++;
                 auto current = select_node();
 //std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
@@ -307,19 +324,9 @@ namespace search {
                             if (_verbose) std::cout << "[INFO] Failure on instance " << (_last_failed_instance_idx + 1) << " reevaluating... ";
                             // activate it
                             _gpp->activate_instance(_last_failed_instance_idx);
-                            // reevaluate queue
-                            std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> old_open;
-                            std::swap(old_open, _open);
-                            // Also add the current child, just in case is a correct partial solution
-                            old_open.push(child);
-                            while(not old_open.empty()){ // TODO: Should we exit early if stop is requested (i.e. another thread has a solution)? It would leave the instance in a broken state.
-                                auto node = old_open.top();
-                                node->get_program()->run(_gpp.get()); // run again the program
-                                old_open.pop();
-                                node->set_f(f(node.get()));
-                                node->set_id(_evaluated_nodes++); // Node reevaluated!
-                                add_node(node);
-                            }
+                            // reevaluate queue and also add the current child, just in case is a correct partial solution
+                            add_node(child);
+                            reevaluate_queue();
                             if (_verbose) std::cout << " done!\n";
                         }
                     }

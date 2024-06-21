@@ -7,6 +7,7 @@
 #include <thread>
 #include <stop_token>
 #include <concepts>
+#include <shared_mutex>
 #include "engine.h"
 #include "best_first_search.h"
 
@@ -16,6 +17,8 @@ namespace search {
         requires std::invocable<F>;
         { std::invoke(std::forward<F>(f)) } -> std::same_as<std::unique_ptr<GeneralizedPlanningProblem>>;
     };
+
+
 
     class SearchWorker : public BFS {
     public:
@@ -28,6 +31,31 @@ namespace search {
             return _other_workers[_id]->solve();
         }
 
+        [[nodiscard]] bool is_empty() const override {
+            std::shared_lock lock{_open_mutex};
+            return BFS::is_empty();
+        }
+
+        [[nodiscard]] std::size_t open_size() const override {
+            std::shared_lock lock{_open_mutex};
+            return BFS::open_size();
+        }
+
+        void add_node(std::shared_ptr<Node> node) override {
+            std::lock_guard lock{_open_mutex};
+            BFS::add_node(std::move(node));
+        }
+
+        [[nodiscard]] std::shared_ptr<Node> select_node() override {
+            std::lock_guard lock{_open_mutex};
+            return BFS::select_node();
+        }
+
+        void reevaluate_queue() override {
+            std::lock_guard lock{_open_mutex};
+            BFS::reevaluate_queue();
+        }
+
         [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) override {
             std::vector<std::shared_ptr<Node>> expanded_nodes {BFS::expand_node(node)};
             for (const auto& expanded_node : expanded_nodes) {
@@ -38,12 +66,17 @@ namespace search {
             return expanded_nodes;
         }
 
+        // TODO: synchronize active instances
+
     private:
         std::size_t _id;
         std::size_t _num_threads;
         std::size_t _next_send_id;
         const std::vector<std::unique_ptr<SearchWorker>>& _other_workers;
+        mutable std::shared_mutex _open_mutex;
     };
+
+
 
     class ParallelBFS : public Engine {
     public:
@@ -57,7 +90,7 @@ namespace search {
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             // Generate initial nodes (at least one root node per thread)
             auto& init_bfs {make_bfs()};
-            init_bfs.set_queue_size_limit(_num_threads * 10);
+            init_bfs.set_open_size_limit(_num_threads * 10);
             auto possible_solution {init_bfs.solve(std::move(roots))};
             if (possible_solution != nullptr) return possible_solution;
 
