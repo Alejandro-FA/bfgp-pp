@@ -241,15 +241,18 @@ namespace search {
             }
 
             _evaluated_nodes = 0;
+            bool add_nodes {_open.empty()}; // Only add nodes if the queue is empty (otherwise we could repeat work of other threads)
             for(int idx = roots.size()-1; idx >= 0; idx--){
-//std::cout << "[INFO] new root node " << std::endl << roots[idx]->to_string(true) << std::endl;
+                //std::cout << "[INFO] new root node " << std::endl << roots[idx]->to_string(true) << std::endl;
                 _theory->set_initial_program(_gpp.get(), roots[idx].get());
-                roots[idx]->run(_gpp.get()); /// This must be the first an unique run of each root
-                auto root_node =std::make_shared<Node>(std::move(roots[idx]),
-                                                       vec_value_t(_evaluation_functions.size(), INF),
-                                                       _evaluated_nodes++);
-                root_node->set_f(f(root_node.get()));
-                add_node(root_node);
+                roots[idx]->run(_gpp.get()); /// This must be the first and unique run of each root
+                if (add_nodes) {
+                    auto root_node =std::make_shared<Node>(std::move(roots[idx]),
+                                                           vec_value_t(_evaluation_functions.size(), INF),
+                                                           _evaluated_nodes++);
+                    root_node->set_f(f(root_node.get()));
+                    add_node(std::move(root_node));
+                }
             }
 
             vec_value_t best_evaluations(_evaluation_functions.size(), INF);
