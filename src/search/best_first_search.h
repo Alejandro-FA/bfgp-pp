@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <stop_token>
 #include "engine.h"
+#include "../generalized_planning_problem.h"
 
 namespace search {
     class BFS : public Engine {
@@ -18,11 +19,13 @@ namespace search {
         }
 
         /// Stop source used to interrupt the search when another thread has found a solution.
+        /// If the new stop source is shared by multiple BFS instances, it can be used to interrupt them.
         void set_stop_source(std::stop_source ssource) {
-            _ssource = std::move(ssource);
+            _stop_source = std::move(ssource);
         }
 
         /// Sets a limit to the _open queue size. If this limit is reached, the search will stop.
+        /// Useful to create a particular amount of work to be distributed.
         void set_open_size_limit(std::size_t limit) {
             _queue_size_limit = limit;
         }
@@ -125,7 +128,7 @@ namespace search {
             return false;
         }
 
-        [[nodiscard]] virtual std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
+        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
             //int pc_max = -1;
             auto p = node->get_program();
             auto instructions = p->get_instructions();
@@ -207,12 +210,14 @@ namespace search {
 
         void print_node(Node *n) const {
             if (not _verbose) return;
-            std::cout << "[ENGINE]\n";
-            std::cout << "Node id=" << n->get_id() << "\n";
-            std::cout << "Expanded=" << _expanded_nodes << "\n";
-            std::cout << "Evaluated=" << _evaluated_nodes << "\n";
-            std::cout << "Open queue size=" << open_size() << "\n";
-            std::cout << n->to_string() << "\n";
+            std::stringstream ss;
+            ss << "[ENGINE]\n";
+            ss << "Node id=" << n->get_id() << "\n";
+            ss << "Expanded=" << _expanded_nodes << "\n";
+            ss << "Evaluated=" << _evaluated_nodes << "\n";
+            ss << "Open queue size=" << open_size() << "\n";
+            ss << n->to_string() << "\n";
+            std::cout << ss.str();
         }
 
         virtual void reevaluate_queue() {
@@ -248,7 +253,7 @@ namespace search {
                 if (all_goal) {
                     base_node->set_f(f(base_node.get()));
                     add_node(base_node);
-                    _ssource.request_stop();
+                    _stop_source.request_stop();
                     return base_node;
                 }
             }
@@ -270,7 +275,7 @@ namespace search {
 
             vec_value_t best_evaluations(_evaluation_functions.size(), INF);
 
-            while (!is_empty() and !_ssource.stop_requested() and open_size() < _queue_size_limit) {
+            while (!is_empty() and !_stop_source.stop_requested() and open_size() < _queue_size_limit) {
                 _expanded_nodes++;
                 auto current = select_node();
 //std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
@@ -286,7 +291,7 @@ namespace search {
                 // }
 
                 for (const auto &child: children) {
-                    if (_ssource.stop_requested()) break;
+                    if (_stop_source.stop_requested()) break;
 
 //std::cout << "[INFO] New child to evaluate:\n" << child->to_string() << "\n";
                     /// Checked in the expansion
@@ -314,7 +319,7 @@ namespace search {
                         if (all_goal) {
                             child->set_f(f(child.get()));
                             add_node(child);
-                            _ssource.request_stop();
+                            _stop_source.request_stop();
                             return child;
                         }
                         else{
@@ -340,10 +345,12 @@ namespace search {
             return nullptr;
         }
 
+    protected:
+        std::stop_source _stop_source; // Used to request the search to stop when a solution is found.
+
     private:
         std::unique_ptr<GeneralizedPlanningProblem> _gpp;
         std::size_t _queue_size_limit{std::numeric_limits<std::size_t>::max()};
-        std::stop_source _ssource;
 
         // In priority_queue, unique_ptr cannot be accessed through top() because is deleted
         std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> _open;

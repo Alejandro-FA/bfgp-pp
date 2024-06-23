@@ -91,6 +91,10 @@ add_executable(main.bin
         src/evaluation_functions/accumulated_cost.h
         src/evaluation_functions/distance_to_last_line.h
         src/search/parallel_bfs.h
+        src/search/parallel_worker.h
+        src/search/search_mediators/search_mediator.h
+        src/search/search_mediators/base_mediator.h
+        src/search/search_mediators/distribute_all_mediator.h
 )
 
 enable_testing()

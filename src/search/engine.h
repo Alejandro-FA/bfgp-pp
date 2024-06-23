@@ -4,7 +4,7 @@
 #include "../utils/common.h"
 #include "node.h"
 #include "../evaluation_functions/evaluation_function.h"
-#include "../generalized_planning_problem.h"
+#include "../theories/theory.h"
 
 namespace search{
 class Engine{
@@ -19,15 +19,14 @@ public:
 	
 	// Add a new heuristic to the engine
 	virtual void add_evaluation_function(std::unique_ptr<const evaluation_functions::EvaluationFunction> new_ef ){
-        if (_verbose) std::cout << "[INFO] Evaluation function " << new_ef->get_name() << " added.\n";
-        _evaluation_functions.emplace_back(std::move(new_ef) );
+        _evaluation_functions.emplace_back(std::move(new_ef));
     }
 
     /*void set_bitvec_theory(bool is_bitvec){
         _bitvec_theory = is_bitvec;
     }*/
 
-    void set_verbose(bool verbose){
+    virtual void set_verbose(bool verbose){
         _verbose = verbose;
     }
 

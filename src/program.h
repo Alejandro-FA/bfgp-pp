@@ -47,27 +47,23 @@ public:
         return std::make_unique<Program>(this);
 	}
 
-    [[nodiscard]] std::unique_ptr<Program> copy_to(GeneralizedPlanningProblem* gpp) {
+    [[nodiscard]] std::unique_ptr<Program> copy_to(GeneralizedPlanningProblem* gpp) const {
         auto gd {gpp->get_generalized_domain()};
         auto new_program = std::make_unique<Program>(gpp);
         for (std::size_t i = 0; i < _instructions.size(); ++i) {
             if (_instructions[i] != nullptr) {
                 auto new_ins = gd->get_instruction(_instructions[i]->get_name(true));
                 new_program->set_instruction(i, new_ins);
-            };
+            }
         }
+        // FIXME: Do this more elegantly
+        new_program->_num_of_steps = _num_of_steps;
+        new_program->_total_plan_costs = _total_plan_costs;
+        new_program->_num_of_math_planning_actions = _num_of_math_planning_actions;
+        new_program->_num_of_mem_planning_actions = _num_of_mem_planning_actions;
+        new_program->_failed_instance_idx = _failed_instance_idx;
+        new_program->_pc_max = _pc_max;
         return new_program;
-    }
-
-    /// FIXME: We will need to make deep copies for thread-safety.
-    [[nodiscard]] std::unique_ptr<Program> clone(GeneralizedDomain *gd) {
-        auto program_copy = std::make_unique<Program>(this);
-        for (std::size_t i = 0; i < program_copy->_instructions.size(); ++i) {
-            auto old_ins = program_copy->_instructions[i];
-            auto new_ins = gd->get_instruction(old_ins->get_name(true));
-            program_copy->_instructions[i] = new_ins;
-        }
-        return program_copy;
     }
 
     void reset_performance_variables(){
