@@ -15,7 +15,7 @@ namespace search {
     /// interrupted. If all workers are inactive, the search is interrupted.
     class ParallelWorker : public BFS {
     public:
-        /// ParalllelWorkers should only be created by a SearchMediator instances.
+        /// ParalllelWorker instances should only be created by a SearchMediator.
         explicit ParallelWorker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
                               std::size_t id, SearchMediator& mediator)
                 : BFS{std::move(theory), std::move(gpp), std::make_unique<ThreadSafeFrontier>(), id}, _mediator{mediator} {}
@@ -40,6 +40,10 @@ namespace search {
             if (_verbose) std::cout << "[DEBUG] Worker " + std::to_string(_id) + " has been interrupted.\n";
             return nullptr;
         };
+
+        [[nodiscard]] std::shared_ptr<Node> top() const {
+            return _open->top();
+        }
 
     protected:
         /// When a new node is ready to be added, the worker delegates the decision of what to do to the mediator.

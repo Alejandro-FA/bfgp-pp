@@ -48,6 +48,7 @@
 #include "search/parallel_bfs.h"
 #include "search/search_mediators/base_mediator.h"
 #include "search/search_mediators/distribute_all_mediator.h"
+#include "search/search_mediators/distribute_promising_mediator.h"
 #include "theories/action_ram.h"
 
 
@@ -225,9 +226,11 @@ namespace factories {
         return programs;
     }
 
+    // TODO: add it as an argument option?
     std::unique_ptr<search::SearchMediator> make_search_mediator(const utils::ArgumentParser *arg_parser) {
-        return std::make_unique<search::BaseMediator>(); // TODO: add it as an argument option?
+        // return std::make_unique<search::DistributePromisingMediator>();
         // return std::make_unique<search::DistributeAllMediator>();
+        return std::make_unique<search::BaseMediator>();
     }
 
     // FIXME: Ideally, the GeneralizedPlanningProblem class should have a method to create a deep copy of itself.

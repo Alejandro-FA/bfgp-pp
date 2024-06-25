@@ -33,6 +33,11 @@ namespace search {
             return Frontier::select_node();
         }
 
+        [[nodiscard]] std::shared_ptr<Node> top() override {
+            std::shared_lock lock{_mutex};
+            return Frontier::top();
+        }
+
         void reevaluate(const std::function<vec_value_t(const Node*)>& f, GeneralizedPlanningProblem* gpp, id_type& next_node_id) override {
             std::scoped_lock lock{_mutex};
             return Frontier::reevaluate(f, gpp, next_node_id);

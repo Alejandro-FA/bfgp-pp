@@ -28,6 +28,10 @@ namespace search {
             return top_node;
         }
 
+        [[nodiscard]] virtual std::shared_ptr<Node> top() {
+            return _open.empty() ? nullptr : _open.top();
+        }
+
         /// Reevaluate all nodes in the frontier.
         /// \param f Evaluation function used to prioritize the nodes.
         /// \param gpp Generalized Planning Problem to run the programs.

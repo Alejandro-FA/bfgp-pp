@@ -33,10 +33,9 @@ TEST(BestFirstSearchTests, BFS){
     //std::cout << gpp->to_string(false) << std::endl;
     /// END - source code taken from theories/assembler.cpp
 
-    auto engine = std::make_unique<search::BFS>(std::move(gpp));
+    auto engine = std::make_unique<search::BFS>(std::move(th_assembler), std::move(gpp));
     engine->add_evaluation_function(std::make_unique<evaluation_functions::EuclideanDistance>());
     engine->add_evaluation_function(std::make_unique<evaluation_functions::LoopCounter>());
-    engine->set_theory(std::move(th_assembler));
     auto res = engine->solve();
     ASSERT_TRUE(res != nullptr);
     std::cout << res->to_string() << std::endl;

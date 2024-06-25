@@ -14,7 +14,7 @@ namespace search {
 
         void distribute_node(std::shared_ptr<Node> node, std::size_t from_id) override {
             assert(from_id < _workers.size());
-            std::size_t to_id {get_receiver_id(from_id)};
+            std::size_t to_id {get_receiver_id(*node, from_id)};
             if (_workers[to_id]->is_empty()) notify_active(to_id);
             _workers[to_id]->add_node(std::move(node), from_id != to_id);
         }
@@ -34,7 +34,7 @@ namespace search {
         }
 
         /// Override this method to change how nodes are distributed between threads.
-        [[nodiscard]] virtual std::size_t get_receiver_id(std::size_t from_id) {
+        [[nodiscard]] virtual std::size_t get_receiver_id(const Node &node, std::size_t from_id) {
             return from_id;
         }
 

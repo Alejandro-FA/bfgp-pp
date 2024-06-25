@@ -27,21 +27,18 @@ public:
         reset_performance_variables();
 	}
 
-    /// FIXME: We will need to make deep copies for thread-safety. The argument needs to be constant.
 	explicit Program(Program *p){
         /// Copy instructions data
         auto vi = p->get_instructions();
 		_instructions.resize( vi.size() );
 		for( size_t i = 0; i < _instructions.size(); i++ )
 			_instructions[ i ] = vi[ i ];
-        /// Copy empirical performance data
+        /// Reset empirical performance data
         reset_performance_variables();
         /// Copy landmarks data
         //_landmark_count = p->get_landmark_count();
         //_unachieved_landmarks = p->get_unachieved_landmark_ids();
 	}
-	
-	~Program()= default;
 
 	[[nodiscard]] std::unique_ptr<Program> copy() {
         return std::make_unique<Program>(this);
@@ -56,7 +53,7 @@ public:
                 new_program->set_instruction(i, new_ins);
             }
         }
-        // FIXME: Do this more elegantly
+        // Copy empirical performance data
         new_program->_num_of_steps = _num_of_steps;
         new_program->_total_plan_costs = _total_plan_costs;
         new_program->_num_of_math_planning_actions = _num_of_math_planning_actions;
