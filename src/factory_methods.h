@@ -227,15 +227,18 @@ namespace factories {
 
     std::unique_ptr<search::SearchMediator> make_search_mediator(const utils::ArgumentParser *arg_parser) {
         return std::make_unique<search::BaseMediator>(); // TODO: add it as an argument option?
+        // return std::make_unique<search::DistributeAllMediator>();
     }
 
     // FIXME: Ideally, the GeneralizedPlanningProblem class should have a method to create a deep copy of itself.
     //  At the moment, we pass a lambda function that creates a new GPP instance (using ArgumentParser and reading the
-    //  input files), although it is less clear and more convoluted.
+    //  input files). In the future, it would make more sense to have a method to copy the GPP instance that is already
+    //  owned by the Engine.
     std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
                                                            std::unique_ptr<GeneralizedPlanningProblem> gpp) {
         return std::make_unique<search::ParallelBFS>(
             make_theory(arg_parser),
+            std::move(gpp),
             [arg_parser]() {
                 auto dom {factories::make_domain(arg_parser)};
                 auto gd {factories::make_generalized_domain(arg_parser, std::move(dom), false)};

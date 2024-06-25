@@ -13,8 +13,8 @@ namespace search {
             return receiver_id;
         }
 
-        void set_workers(std::vector<std::unique_ptr<ParallelWorker>> &&workers) override {
-            BaseMediator::set_workers(std::move(workers));
+        void create_worker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp) override {
+            BaseMediator::create_worker(std::move(theory), std::move(gpp));
             _next_receivers.resize(_num_threads);
             for (std::size_t i = 0; i < _num_threads; ++i) _next_receivers[i] = (i + 1) % _num_threads;
         }

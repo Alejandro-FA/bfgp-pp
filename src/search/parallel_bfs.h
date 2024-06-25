@@ -26,14 +26,14 @@ namespace search {
     public:
         /// \param num_threads Maximum number of threads to use
         /// \param gpp_factory Function to create new instances of the GeneralizedPlanningProblem to solve.
-        explicit ParallelBFS(std::unique_ptr<theory::Theory> theory, GPPFactory auto &&gpp_factory,
-                             std::unique_ptr<SearchMediator> mediator, std::size_t num_threads,
-                             std::size_t init_nodes_per_thread = 1)
-                : Engine{std::move(theory)}, _gpp_factory{std::forward<decltype(gpp_factory)>(gpp_factory)},
+        explicit ParallelBFS(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
+                             GPPFactory auto &&gpp_factory, std::unique_ptr<SearchMediator> mediator,
+                             std::size_t num_threads, std::size_t init_nodes_per_thread = 1)
+                : Engine{std::move(theory), std::move(gpp)}, _gpp_factory{std::forward<decltype(gpp_factory)>(gpp_factory)},
                 _mediator{std::move(mediator)}, _num_threads{num_threads}, _init_nodes_per_thread{init_nodes_per_thread} {
             assert(_num_threads > 0);
             assert(_init_nodes_per_thread > 0);
-            _mediator->set_workers(create_workers());
+            create_workers();
             _init_bfs = std::make_unique<BFS>(_theory->copy(), _gpp_factory());
             _init_bfs->set_verbose(false);
             _init_bfs->set_open_size_limit(_num_threads * _init_nodes_per_thread);
@@ -41,22 +41,23 @@ namespace search {
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             // Generate initial nodes (at least one root node per thread) with a normal BFS
-            auto possible_solution {_init_bfs->solve(std::move(roots))};
+            auto possible_solution {_init_bfs->solve(copy_roots(roots, _init_bfs->get_generalized_planning_problem()))};
             if (possible_solution != nullptr) return possible_solution;
 
             // Distribute the initial nodes among the threads
             const auto& workers {_mediator->get_workers()};
             unsigned int thread_idx = 0;
             while (not _init_bfs->is_empty()) {
-                auto gpp {workers[thread_idx]->get_generalized_planning_problem()};
-                workers[thread_idx]->receive_node(_init_bfs->select_node()->copy_to(gpp));
+                workers[thread_idx]->add_node(_init_bfs->select_node(), true);
                 thread_idx = (thread_idx + 1) % _num_threads;
             }
 
             // Once each thread has its own initial nodes, start the parallel search
             std::vector<std::future<std::shared_ptr<Node>>> futures;
             for (const auto& worker : workers) {
-                auto future { std::async(std::launch::async, [&worker]() { return worker->solve(); }) };
+                auto future { std::async(std::launch::async, [&worker, &roots]() {
+                    return worker->solve(copy_roots(roots, worker->get_generalized_planning_problem()));
+                }) };
                 futures.push_back(std::move(future));
             }
 
@@ -94,14 +95,18 @@ namespace search {
         }
 
     private:
-        [[nodiscard]] std::vector<std::unique_ptr<ParallelWorker>> create_workers() {
-            std::vector<std::unique_ptr<ParallelWorker>> workers(_num_threads);
-            for (std::size_t i = 0; i < _num_threads; ++i) {
-                workers[i] = std::make_unique<ParallelWorker>(_theory->copy(), _gpp_factory(), i, *_mediator);
-                for (const auto &ef : _evaluation_functions) workers[i]->add_evaluation_function(ef->copy());
-                workers[i]->set_verbose(_verbose);
+        void create_workers() {
+            for (std::size_t i = 0; i < _num_threads; ++i) _mediator->create_worker(_theory->copy(), _gpp_factory());
+            for (const auto &worker : _mediator->get_workers()) {
+                for (const auto &ef : _evaluation_functions) worker->add_evaluation_function(ef->copy());
+                worker->set_verbose(_verbose);
             }
-            return workers;
+        }
+
+        [[nodiscard]] static std::vector<std::unique_ptr<Program>> copy_roots(const std::vector<std::unique_ptr<Program>>& roots, GeneralizedPlanningProblem* gpp) {
+            std::vector<std::unique_ptr<Program>> copied_roots(roots.size());
+            for (std::size_t i = 0; i < roots.size(); ++i) copied_roots[i] = roots[i]->copy_to(gpp);
+            return copied_roots;
         }
 
     private:

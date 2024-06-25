@@ -12,14 +12,12 @@ add_executable(main.bin
         src/utils/common.h
         src/expressions/conditions/condition.h
         src/domain.h
-        src/search/engine.h
         src/expressions/expression.h
         src/generalized_domain.h
         src/generalized_planning_problem.h
         src/evaluation_functions/evaluation_function.h
         src/instance.h
         src/instructions/instruction.h
-        src/search/node.h
         src/expressions/effects/effect.h
         src/parser/parser.h
         src/program.h
@@ -38,7 +36,6 @@ add_executable(main.bin
         src/evaluation_functions/max_nested_loops.h
         src/evaluation_functions/max_loop_lines.h
         src/evaluation_functions/loop_lines_counter.h
-        src/search/best_first_search.h
         src/expressions/conditions/different.h
         src/expressions/conditions/subtrack.h
         src/expressions/conditions/add.h
@@ -90,8 +87,13 @@ add_executable(main.bin
         src/variables/variable.h
         src/evaluation_functions/accumulated_cost.h
         src/evaluation_functions/distance_to_last_line.h
-        src/search/parallel_bfs.h
+        src/search/node.h
+        src/search/engine.h
+        src/search/best_first_search.h
         src/search/parallel_worker.h
+        src/search/parallel_bfs.h
+        src/search/frontiers/frontier.h
+        src/search/frontiers/thread_safe_frontier.h
         src/search/search_mediators/search_mediator.h
         src/search/search_mediators/base_mediator.h
         src/search/search_mediators/distribute_all_mediator.h

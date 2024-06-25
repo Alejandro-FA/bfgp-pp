@@ -122,10 +122,6 @@ public:
         return _progressive;
     }
 
-    [[nodiscard]] vec_bool_t get_active_instances() const{
-        return _active_instances;
-    }
-
     [[nodiscard]] std::set<id_type> get_instance_idxs(bool only_active=true) const{
         if(only_active and _progressive)
             return _active_instance_idxs;

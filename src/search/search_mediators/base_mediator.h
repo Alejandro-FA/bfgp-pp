@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <algorithm>
-#include <semaphore>
+#include <future>
 #include "search_mediator.h"
 #include "../parallel_worker.h"
 
@@ -11,12 +11,26 @@ namespace search {
     /// This is not implemented in SearchMediator to avoid circular includes with ParallelWorker
     class BaseMediator : public SearchMediator {
     public:
-        BaseMediator() = default;
 
         void distribute_node(std::shared_ptr<Node> node, std::size_t from_id) override {
             assert(from_id < _workers.size());
             std::size_t to_id {get_receiver_id(from_id)};
-            send_node(std::move(node), from_id, to_id);
+            if (_workers[to_id]->is_empty()) notify_active(to_id);
+            _workers[to_id]->add_node(std::move(node), from_id != to_id);
+        }
+
+        /// Blocks execution of all workers until their queue has been reevaluated.
+        /// Perhaps it would be possible to block a little less, but we need to ensure that nodes are not extracted
+        /// from the queue while it is being evaluated (adding nodes might be fine).
+        void activate_and_reevaluate(id_type instance_idx) override {
+            std::vector<std::future<void>> futures;
+            // Activate the GPP instance in all workers and reevaluate their queues
+            for (auto& worker: _workers) {
+                futures.push_back(std::async(std::launch::async,[&worker, instance_idx](){
+                    worker->activate_and_reevaluate(instance_idx);
+                }));
+            }
+            for (auto &future: futures) future.get(); // Wait for the reevaluation to finish
         }
 
         /// Override this method to change how nodes are distributed between threads.
@@ -42,37 +56,24 @@ namespace search {
             return std::ranges::all_of(_active_threads,[](const std::atomic<bool> &is_active) { return not is_active.load(); });
         }
 
-        /// NOTE: Changing workers is not thread safe. Intended to be used before starting the parallel search.
-        void set_workers(std::vector<std::unique_ptr<ParallelWorker>> &&workers) override {
-            _workers = std::move(workers);
-            _num_threads = _workers.size();
-            _stop_source = std::stop_source{};
+        /// NOTE: Creating workers is not thread safe. Intended to be used before starting the parallel search.
+        void create_worker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp) override {
+            _workers.push_back(std::make_unique<ParallelWorker>(std::move(theory), std::move(gpp), _num_threads++, *this));
+            _workers.back()->set_stop_source(_stop_source);
 
-            // Update _active_threads accordingly
-            std::vector<std::atomic<bool>> active_threads(_num_threads);
-            std::swap(_active_threads, active_threads);
-            for (std::size_t i = 0; i < _num_threads; ++i) {
+            // Update _active_threads accordingly. We need to replace the vector because std::atomic is not copyable.
+            std::vector<std::atomic<bool>> new_vector(_num_threads);
+            std::swap(_active_threads, new_vector);
+            for (std::size_t i = 0; i < _num_threads; ++i)
                 _active_threads[i].exchange(!_workers[i]->is_empty());
-                _workers[i]->set_stop_source(_stop_source);
-            }
         }
 
         [[nodiscard]] const std::vector<std::unique_ptr<ParallelWorker>>& get_workers() override {
             return _workers;
         }
 
-    private:
-        void send_node(std::shared_ptr<Node> node, std::size_t from_id, std::size_t to_id) const {
-            if (from_id == to_id) {
-                _workers[to_id]->receive_node(std::move(node));
-            } else {
-                auto destination_gpp = _workers[to_id]->get_generalized_planning_problem();
-                _workers[to_id]->receive_node(node->copy_to(destination_gpp));
-            }
-        }
-
     protected:
-        std::vector<std::unique_ptr<ParallelWorker>> _workers; // TODO: store in stack, not in heap
+        std::vector<std::unique_ptr<ParallelWorker>> _workers;
         std::size_t _num_threads {0};
         std::vector<std::atomic<bool>> _active_threads;
 
