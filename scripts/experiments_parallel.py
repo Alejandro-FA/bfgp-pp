@@ -186,10 +186,10 @@ def experiment_5():
     extra_pointers = [0, 0, 0, 1, 0, 0, 0, 0, 0]
     problems = [f"domains/aij23/synthesis/{domain}/" for domain in domains]
     eval_funcs = ["ilc ed"]
-    sequential_execution(tasks=[SynthesisTask("experiment_5a", "cpp", lines[idx], problems, [ef], extra_pointers[idx], 1, True) for ef in eval_funcs for idx, prob in enumerate(problems)])
-    sequential_execution(tasks=[SynthesisTask("experiment_5b", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
-    sequential_execution(tasks=[SynthesisTask("experiment_5c", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
-    sequential_execution(tasks=[SynthesisTask("experiment_5d", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5a", "cpp", lines[idx], prob, [ef], extra_pointers[idx], 1, True) for ef in eval_funcs for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5b", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5c", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5d", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
     
 
 def main():
