@@ -150,10 +150,10 @@ def experiment_2():
     extra_pointers = [0, 0, 0, 1, 0, 0, 0, 0, 0]
     problems = [f"domains/aij23/synthesis/{domain}/" for domain in domains]
     eval_funcs = ["ed mri"]
-    sequential_execution(tasks=[SynthesisTask("experiment_2a", "assembler", lines, problems, [ef], extra_pointers, 1, False) for ef in eval_funcs])
-    sequential_execution(tasks=[SynthesisTask("experiment_2b", "assembler", lines, problems, [ef], extra_pointers, t, False, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_2c", "assembler", lines, problems, [ef], extra_pointers, t, False, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_2d", "assembler", lines, problems, [ef], extra_pointers, t, False, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16]])
+    sequential_execution(tasks=[SynthesisTask("experiment_2a", "assembler", lines[idx], prob, [ef], extra_pointers[idx], 1, False) for ef in eval_funcs for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_2b", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, False, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_2c", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, False, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_2d", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, False, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
                                
 def experiment_3():
     """Table 3 - Using [ed,mri], evaluate the scalability performance for threads in [1, 2, 4, 8, 16] for assembler theory with pgp and different parallel strategies"""
@@ -162,10 +162,10 @@ def experiment_3():
     extra_pointers = [0, 0, 0, 1, 0, 0, 0, 0, 0]
     problems = [f"domains/aij23/synthesis/{domain}/" for domain in domains]
     eval_funcs = ["ed mri"]
-    sequential_execution(tasks=[SynthesisTask("experiment_3a", "assembler", lines, problems, [ef], extra_pointers, 1, True) for ef in eval_funcs])
-    sequential_execution(tasks=[SynthesisTask("experiment_3b", "assembler", lines, problems, [ef], extra_pointers, t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_3c", "assembler", lines, problems, [ef], extra_pointers, t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_3d", "assembler", lines, problems, [ef], extra_pointers, t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16]])
+    sequential_execution(tasks=[SynthesisTask("experiment_3a", "assembler", lines[idx], prob, [ef], extra_pointers[idx], 1, True) for ef in eval_funcs for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_3b", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_3c", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_3d", "assembler", lines[idx], prob, [ef], extra_pointers[idx], t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
 
 def experiment_4():
     """Table 4 - Using [ilc,ed], evaluate the scalability performance for threads in [1, 2, 4, 8, 16] for CPP theory and different parallel strategies"""
@@ -174,10 +174,10 @@ def experiment_4():
     extra_pointers = [0, 0, 0, 1, 0, 0, 0, 0, 0]
     problems = [f"domains/aij23/synthesis/{domain}/" for domain in domains]
     eval_funcs = ["ilc ed"]
-    sequential_execution(tasks=[SynthesisTask("experiment_4a", "cpp", lines, problems, [ef], extra_pointers, 1, False) for ef in eval_funcs])
-    sequential_execution(tasks=[SynthesisTask("experiment_4b", "cpp", lines, problems, [ef], extra_pointers, t, False, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_4c", "cpp", lines, problems, [ef], extra_pointers, t, False, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_4d", "cpp", lines, problems, [ef], extra_pointers, t, False, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16]])
+    sequential_execution(tasks=[SynthesisTask("experiment_4a", "cpp", lines[idx], prob, [ef], extra_pointers[idx], 1, False) for ef in eval_funcs for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_4b", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, False, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_4c", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, False, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_4d", "cpp", lines[idx], prob, [ef], extra_pointers[idx], t, False, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
 
 def experiment_5():
     """Table 4 - Using [ilc,ed], evaluate the scalability performance for threads in [1, 2, 4, 8, 16] for CPP theory with pgp and different parallel strategies"""
@@ -186,10 +186,10 @@ def experiment_5():
     extra_pointers = [0, 0, 0, 1, 0, 0, 0, 0, 0]
     problems = [f"domains/aij23/synthesis/{domain}/" for domain in domains]
     eval_funcs = ["ilc ed"]
-    sequential_execution(tasks=[SynthesisTask("experiment_4a", "cpp", lines, problems, [ef], extra_pointers, 1, True) for ef in eval_funcs])
-    sequential_execution(tasks=[SynthesisTask("experiment_4b", "cpp", lines, problems, [ef], extra_pointers, t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_4c", "cpp", lines, problems, [ef], extra_pointers, t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16]])
-    sequential_execution(tasks=[SynthesisTask("experiment_4d", "cpp", lines, problems, [ef], extra_pointers, t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16]])
+    sequential_execution(tasks=[SynthesisTask("experiment_5a", "cpp", lines[idx], problems, [ef], extra_pointers[idx], 1, True) for ef in eval_funcs for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5b", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "independent_queues") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5c", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "distribute_all") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
+    sequential_execution(tasks=[SynthesisTask("experiment_5d", "cpp", lines[idx], problems, [ef], extra_pointers[idx], t, True, "distribute_promising") for ef in eval_funcs for t in [2, 4, 8, 16] for idx, prob in enumerate(problems)])
     
 
 def main():
