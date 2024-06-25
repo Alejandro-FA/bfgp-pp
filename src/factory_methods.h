@@ -226,11 +226,17 @@ namespace factories {
         return programs;
     }
 
-    // TODO: add it as an argument option?
     std::unique_ptr<search::SearchMediator> make_search_mediator(const utils::ArgumentParser *arg_parser) {
-        // return std::make_unique<search::DistributePromisingMediator>();
-        // return std::make_unique<search::DistributeAllMediator>();
-        return std::make_unique<search::BaseMediator>();
+        auto parallel_strategy {arg_parser->get_parallel_strategy()};
+        if (parallel_strategy == "distribute_promising")
+            return std::make_unique<search::DistributePromisingMediator>();
+        else if (parallel_strategy == "distribute_all")
+            return std::make_unique<search::DistributeAllMediator>();
+        else if (parallel_strategy == "independent_queues")
+            return std::make_unique<search::BaseMediator>();
+        else // This should never happen, already checked in the argument parser
+            utils::system_error("Wrong parallel strategy, \"" + parallel_strategy + "\" is unknown.", ERROR_UNKNOWN_PARALLEL_STRATEGY);
+        return nullptr;
     }
 
     // FIXME: Ideally, the GeneralizedPlanningProblem class should have a method to create a deep copy of itself.
