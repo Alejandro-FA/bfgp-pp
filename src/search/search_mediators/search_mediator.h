@@ -24,9 +24,6 @@ namespace search {
         /// Notifies that a worker is active.
         virtual void notify_active(std::size_t thread_id) = 0;
 
-        /// Returns true if all workers are active.
-        [[nodiscard]] virtual bool all_active() const = 0;
-
         /// Returns true if all workers are inactive.
         [[nodiscard]] virtual bool all_inactive() const = 0;
 

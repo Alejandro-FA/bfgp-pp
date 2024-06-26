@@ -8,8 +8,8 @@ namespace search {
     public:
         /// Only distributes nodes if they have a promising heuristic value.
         [[nodiscard]] std::size_t get_receiver_id(const Node &node, std::size_t from_id) override {
-            auto next_node {_workers[from_id]->top()};
-            if (next_node == nullptr or node.f() < next_node->f()) return from_id;
+            auto last_f {_workers[from_id]->current_evaluations()};
+            if (node.f() < last_f) return from_id; // If the node is not promising, don't distribute it to reduce overhead
             else return DistributeAllMediator::get_receiver_id(node, from_id);
         }
     };

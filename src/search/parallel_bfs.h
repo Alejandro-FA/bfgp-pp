@@ -28,11 +28,12 @@ namespace search {
         /// \param gpp_factory Function to create new instances of the GeneralizedPlanningProblem to solve.
         explicit ParallelBFS(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
                              GPPFactory auto &&gpp_factory, std::unique_ptr<SearchMediator> mediator,
-                             std::size_t num_threads, std::size_t init_nodes_per_thread = 1)
+                             std::size_t num_threads, std::size_t init_nodes_per_thread = 10)
                 : Engine{std::move(theory), std::move(gpp)}, _gpp_factory{std::forward<decltype(gpp_factory)>(gpp_factory)},
                 _mediator{std::move(mediator)}, _num_threads{num_threads}, _init_nodes_per_thread{init_nodes_per_thread} {
             assert(_num_threads > 0);
             assert(_init_nodes_per_thread > 0);
+            std::cout << "Init nodes per thread: " << _init_nodes_per_thread << std::endl;
             create_workers();
             _init_bfs = std::make_unique<BFS>(_theory->copy(), _gpp_factory());
             _init_bfs->set_verbose(false);
@@ -113,7 +114,7 @@ namespace search {
         const std::function<std::unique_ptr<GeneralizedPlanningProblem>()> _gpp_factory;
         const std::unique_ptr<SearchMediator> _mediator {std::make_unique<BaseMediator>()};
         const std::size_t _num_threads {std::thread::hardware_concurrency()};
-        const std::size_t _init_nodes_per_thread {1};
+        const std::size_t _init_nodes_per_thread {10};
         std::unique_ptr<BFS> _init_bfs;
     };
 }

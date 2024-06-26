@@ -251,11 +251,9 @@ namespace utils {
             if(arg_map.find(_threads_ntype) == arg_map.end())
                 _threads = 1;
             if(arg_map.find(_init_nodes_per_thread_ntype) == arg_map.end())
-                _init_nodes_per_thread = 1;
+                _init_nodes_per_thread = 10;
             if(arg_map.find(_parallel_strategy_ntype) == arg_map.end()) {
                 _parallel_strategy = "independent_queues";
-                if(arg_map.find(_init_nodes_per_thread_ntype) != arg_map.end())
-                    _init_nodes_per_thread = 10; // The default value for independent queues is different
             }
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
@@ -573,7 +571,7 @@ namespace utils {
         int _num_extra_pointers;  // number of extra pointers per argument type
         bool _progressive; // optional for synthesis and repair only (default: false)
         unsigned int _threads; // optional for synthesis and repair only (default: 1)
-        unsigned int _init_nodes_per_thread; // optional for PARALLEL synthesis and repair only (default: 1)
+        unsigned int _init_nodes_per_thread; // optional for PARALLEL synthesis and repair only (default: 10)
         std::string _parallel_strategy; // optional for synthesis and repair only (default: "independent_queues")
         std::string _output_file;  // optional for synthesis and repair only (default: "")
         bool _verbose; // optional verbose output

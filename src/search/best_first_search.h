@@ -18,7 +18,8 @@ namespace search {
     public:
         explicit BFS(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
                      std::unique_ptr<Frontier> open = std::make_unique<Frontier>(), std::size_t id = 0) // By default, uses the unprotected Frontier
-            : Engine{std::move(theory), std::move(gpp)}, _open{std::move(open)}, _id{id} {
+            : Engine{std::move(theory), std::move(gpp)}, _best_evaluations(_evaluation_functions.size(), INF),
+            _open{std::move(open)}, _id{id} {
             //_bitvec_theory = false;
         }
 
@@ -104,7 +105,6 @@ namespace search {
         }
 
         [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
-            _expanded_nodes++;
             //int pc_max = -1;
             auto p = node->get_program();
             auto instructions = p->get_instructions();
@@ -165,14 +165,11 @@ namespace search {
 
                 childs.emplace_back(std::make_shared<Node>(std::move(p2), vec_value_t(maxi, 0)));
             }
-
+            _expanded_nodes++;
             return childs;
         }
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
-            _expanded_nodes = 0; // Reset metrics for each call to solve
-            _evaluated_nodes = 0;
-
             if(roots.empty()){
                 /// Initialize the empty root program
                 roots.emplace_back(std::make_unique<Program>(_gpp.get())); // Caution! Assumes that Program constructor does not read nor write active instances
@@ -209,21 +206,19 @@ namespace search {
                 }
             }
 
-            vec_value_t best_evaluations(_evaluation_functions.size(), INF);
-
             while (!_open->empty() and !_stop_source.stop_requested() and _open->size() < _queue_size_limit) {
                 auto current {_open->select_node()};
-//std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
-                auto current_evaluations {current->f()};
                 auto children {expand_node(current.get())};
+//std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
+                _current_evaluations = current->f();
 //std::cout << "[INFO] Total new expansions = " << children.size() << "\n";
-                if (current_evaluations < best_evaluations) {
-                    best_evaluations = current_evaluations;
+                if (_current_evaluations < _best_evaluations) {
+                    _best_evaluations = _current_evaluations;
                     print_node(current.get());
                 }
-                // else if (_verbose and _expanded_nodes % PROGRAM_FREQUENCY == 0) {
-                //     print_node(current.get());
-                // }
+                else if (_verbose and _expanded_nodes % PROGRAM_FREQUENCY == 0) {
+                    print_node(current.get());
+                }
 
                 for (const auto &child: children) {
                     if (_stop_source.stop_requested()) break;
@@ -275,7 +270,10 @@ namespace search {
                         }
                     }
 
-                    if (activate_instance) activate_instance_request(_last_failed_instance_idx);
+                    if (activate_instance) {
+                        std::osyncstream{std::cout} << "[ENGINE " << _id << "] Failure on instance " << _last_failed_instance_idx + 1 << ", reevaluating...\n";
+                        activate_instance_request(_last_failed_instance_idx);
+                    }
                 }
             }
 
@@ -286,12 +284,19 @@ namespace search {
         void activate_and_reevaluate(id_type instance_idx) {
             std::scoped_lock lock{_pgp_mutex}; // Unique access to the GPP active instances. No other thread can read nor write the active instances.
             if (_gpp->is_instance_active(instance_idx)) return; // There is a small chance that 2 threads simultaneously request the activation of the same instance
-            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", reevaluating...\n";
             _gpp->activate_instance(instance_idx);
             value_t next_id {_next_node_id.load()};
             _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
             _next_node_id.exchange(next_id);
             if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
+        }
+
+        [[nodiscard]] vec_value_t current_evaluations() const {
+            return _current_evaluations;
+        }
+
+        [[nodiscard]] vec_value_t best_evaluations() const {
+            return _best_evaluations;
         }
 
     protected:
@@ -350,7 +355,10 @@ namespace search {
             oss << "[ENGINE " << _id << "]\n";
             oss << "Node id=" << n->get_id() << "\n";
             oss << "Expanded=" << _expanded_nodes << "\n";
-            oss << "Evaluated=" << _evaluated_nodes << "\n";
+            {
+                std::scoped_lock lock{_pgp_mutex};
+                oss << "Evaluated=" << _evaluated_nodes << "\n";
+            }
             oss << "Open queue size=" << _open->size() << "\n";
             oss << n->to_string() << "\n";
         }
@@ -364,6 +372,8 @@ namespace search {
 
         // TEST
         id_type _last_failed_instance_idx{-1};
+        vec_value_t _best_evaluations; // Keep value between solve calls
+        vec_value_t _current_evaluations;
         //bool _bitvec_theory;
         //std::set<std::vector<vec_value_t>> _closed_program_states;
 

@@ -2,6 +2,7 @@
 #define __SEARCH_PARALLEL_WORKER_H__
 
 #include <syncstream>
+#include <shared_mutex>
 #include "best_first_search.h"
 #include "search_mediators/search_mediator.h"
 #include "frontiers/thread_safe_frontier.h"
@@ -24,6 +25,7 @@ namespace search {
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             while (not _stop_source.stop_requested()) {
                 if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " starts searching.\n";
+                _mediator.notify_active(_id);
                 std::shared_ptr<Node> solution {BFS::solve()};
                 if (solution != nullptr) {
                     if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " found a SOLUTION!\n";
@@ -31,20 +33,17 @@ namespace search {
                 }
 
                 // Wait until more work arrives, or until an interruption is requested (because of solution found or search finished).
-                if (_open->empty()) {
-                    _mediator.notify_inactive(_id);
-                    if (_mediator.all_inactive()) _stop_source.request_stop();
-                    if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
+                _mediator.notify_inactive(_id);
+                if (_mediator.all_inactive()) {
+                    std::cout << "All workers are inactive. Stopping search.\n";
+                    _stop_source.request_stop();
                 }
+                if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
                 dynamic_cast<ThreadSafeFrontier&>(*_open).wait_until_not_empty(_stop_source.get_token());
             }
             if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " has been interrupted.\n";
             return nullptr;
         };
-
-        [[nodiscard]] std::shared_ptr<Node> top() const {
-            return _open->top();
-        }
 
     protected:
         /// When a new node is ready to be added, the worker delegates the decision of what to do to the mediator.

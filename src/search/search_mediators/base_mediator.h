@@ -15,7 +15,6 @@ namespace search {
         void distribute_node(std::shared_ptr<Node> node, std::size_t from_id) override {
             assert(from_id < _workers.size());
             std::size_t to_id {get_receiver_id(*node, from_id)};
-            if (_workers[to_id]->is_empty()) notify_active(to_id);
             _workers[to_id]->add_node(std::move(node), from_id != to_id);
         }
 
@@ -48,12 +47,8 @@ namespace search {
             _active_threads[thread_id].exchange(true);
         }
 
-        [[nodiscard]] bool all_active() const override {
-            return std::ranges::all_of(_active_threads,[](const std::atomic<bool> &is_active) { return is_active.load(); });
-        }
-
         [[nodiscard]] bool all_inactive() const override {
-            return std::ranges::all_of(_active_threads,[](const std::atomic<bool> &is_active) { return not is_active.load(); });
+            return std::ranges::all_of(_active_threads,[](const std::atomic<bool> &is_active) { return not is_active; });
         }
 
         /// NOTE: Creating workers is not thread safe. Intended to be used before starting the parallel search.
@@ -64,8 +59,7 @@ namespace search {
             // Update _active_threads accordingly. We need to replace the vector because std::atomic is not copyable.
             std::vector<std::atomic<bool>> new_vector(_num_threads);
             std::swap(_active_threads, new_vector);
-            for (std::size_t i = 0; i < _num_threads; ++i)
-                _active_threads[i].exchange(!_workers[i]->is_empty());
+            for (std::size_t i = 0; i < _num_threads; ++i) _active_threads[i].exchange(true);
         }
 
         [[nodiscard]] const std::vector<std::unique_ptr<ParallelWorker>>& get_workers() override {
