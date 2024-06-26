@@ -18,8 +18,8 @@ namespace search {
     public:
         explicit BFS(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
                      std::unique_ptr<Frontier> open = std::make_unique<Frontier>(), std::size_t id = 0) // By default, uses the unprotected Frontier
-            : Engine{std::move(theory), std::move(gpp)}, _best_evaluations(_evaluation_functions.size(), INF),
-            _open{std::move(open)}, _id{id} {
+            : Engine{std::move(theory), std::move(gpp)}, _open{std::move(open)}, _id{id},
+              _best_evaluations(_evaluation_functions.size(), INF) {
             //_bitvec_theory = false;
         }
 
