@@ -1,6 +1,7 @@
 #ifndef __SEARCH_PARALLEL_WORKER_H__
 #define __SEARCH_PARALLEL_WORKER_H__
 
+#include <syncstream>
 #include "best_first_search.h"
 #include "search_mediators/search_mediator.h"
 #include "frontiers/thread_safe_frontier.h"
@@ -22,10 +23,10 @@ namespace search {
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             while (not _stop_source.stop_requested()) {
-                if (_verbose) std::cout << "[DEBUG] Worker " + std::to_string(_id) + " starts searching.\n";
+                if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " starts searching.\n";
                 std::shared_ptr<Node> solution {BFS::solve()};
                 if (solution != nullptr) {
-                    if (_verbose) std::cout << "[DEBUG] Worker " + std::to_string(_id) + " found a SOLUTION!\n";
+                    if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " found a SOLUTION!\n";
                     return solution;
                 }
 
@@ -33,11 +34,11 @@ namespace search {
                 if (_open->empty()) {
                     _mediator.notify_inactive(_id);
                     if (_mediator.all_inactive()) _stop_source.request_stop();
-                    if (_verbose) std::cout << "[DEBUG] Worker " + std::to_string(_id) + " is waiting to receive nodes.\n";
+                    if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
                 }
                 dynamic_cast<ThreadSafeFrontier&>(*_open).wait_until_not_empty(_stop_source.get_token());
             }
-            if (_verbose) std::cout << "[DEBUG] Worker " + std::to_string(_id) + " has been interrupted.\n";
+            if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " has been interrupted.\n";
             return nullptr;
         };
 

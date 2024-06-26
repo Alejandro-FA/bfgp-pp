@@ -8,6 +8,7 @@
 #include <stop_token>
 #include <mutex>
 #include <atomic>
+#include <syncstream>
 #include "frontiers/frontier.h"
 #include "engine.h"
 #include "../generalized_planning_problem.h"
@@ -251,7 +252,7 @@ namespace search {
                         child->set_f(f(child.get()));
 
                         if (is_goal(child.get(), false, true)) {
-                            if (_verbose) std::cout << "[INFO] Solution candidate!\n" << child->to_string();
+                            if (_verbose) std::osyncstream{std::cout} << "[INFO] Solution candidate!\n" << child->to_string();
                             // if the program solves all instances finish
                             bool all_goal = is_goal(child.get(), true, false);
                             if (all_goal) {
@@ -285,12 +286,12 @@ namespace search {
         void activate_and_reevaluate(id_type instance_idx) {
             std::scoped_lock lock{_pgp_mutex}; // Unique access to the GPP active instances. No other thread can read nor write the active instances.
             if (_gpp->is_instance_active(instance_idx)) return; // There is a small chance that 2 threads simultaneously request the activation of the same instance
-            if (_verbose) std::cout << "[ENGINE " + std::to_string(_id) + "] Failure on instance " + std::to_string(instance_idx + 1) + ", reevaluating...\n";
+            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", reevaluating...\n";
             _gpp->activate_instance(instance_idx);
             value_t next_id {_next_node_id.load()};
             _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
             _next_node_id.exchange(next_id);
-            if (_verbose) std::cout << "[ENGINE " + std::to_string(_id) + "] Reevaluation done!\n";
+            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
         }
 
     protected:
@@ -345,14 +346,13 @@ namespace search {
 
         void print_node(Node *n) const {
             if (not _verbose) return;
-            std::stringstream ss;
-            ss << "[ENGINE " << _id << "]\n";
-            ss << "Node id=" << n->get_id() << "\n";
-            ss << "Expanded=" << _expanded_nodes << "\n";
-            ss << "Evaluated=" << _evaluated_nodes << "\n";
-            ss << "Open queue size=" << _open->size() << "\n";
-            ss << n->to_string() << "\n";
-            std::cout << ss.str();
+            std::osyncstream oss{std::cout};
+            oss << "[ENGINE " << _id << "]\n";
+            oss << "Node id=" << n->get_id() << "\n";
+            oss << "Expanded=" << _expanded_nodes << "\n";
+            oss << "Evaluated=" << _evaluated_nodes << "\n";
+            oss << "Open queue size=" << _open->size() << "\n";
+            oss << n->to_string() << "\n";
         }
 
     private:

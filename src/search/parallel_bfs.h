@@ -91,7 +91,7 @@ namespace search {
         void set_verbose(bool verbose) override {
             Engine::set_verbose(verbose);
             for (const auto &w : _mediator->get_workers()) w->set_verbose(verbose);
-            _init_bfs->set_verbose(verbose);
+            // _init_bfs->set_verbose(verbose); // The initial BFS is always silent
         }
 
     private:
