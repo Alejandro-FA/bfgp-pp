@@ -11,7 +11,7 @@ namespace search {
     /// Interface for a SearchMediator. Implementation is moved to BaseMediator to avoid circular includes with ParallelWorker
     class SearchMediator {
     public:
-        /// Don't call this constructor directly, use create instead.
+        /// Don't call this constructor directly, use `create` instead.
         explicit SearchMediator(unsigned int num_threads) : _num_threads{num_threads}, _workers(num_threads),
             _start_barrier{num_threads}, _stop_barrier{num_threads, [this]() {
                 std::scoped_lock lock{_instances_to_activate_mutex};

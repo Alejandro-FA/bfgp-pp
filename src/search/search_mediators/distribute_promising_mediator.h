@@ -6,6 +6,7 @@
 namespace search {
     class DistributePromisingMediator : public DistributeAllMediator {
     public:
+        /// Don't call this constructor directly, use `create` instead.
         explicit DistributePromisingMediator(unsigned int num_threads) : DistributeAllMediator(num_threads) {}
 
         /// Only distributes nodes if they have a promising heuristic value.

@@ -273,19 +273,6 @@ namespace search {
             return _current_evaluations;
         }
 
-        virtual void activate_and_reevaluate() {
-            // Activate failed instances
-            auto failed_instances {get_instances_to_activate()};
-            for (const auto &idx: failed_instances) _gpp->activate_instance(idx);
-
-            // Reevaluate the queue
-            value_t next_id {_next_node_id.load()};
-            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
-            _next_node_id.exchange(next_id);
-            _instances_to_activate.clear();
-            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
-        }
-
     protected:
         /// Requests to add a new node to the search queue. Parallel algorithms can override this method to distribute
         /// nodes.
@@ -310,6 +297,18 @@ namespace search {
             return _instances_to_activate;
         }
 
+        virtual void activate_and_reevaluate() {
+            // Activate failed instances
+            auto failed_instances {get_instances_to_activate()};
+            for (const auto &idx: failed_instances) _gpp->activate_instance(idx);
+
+            // Reevaluate the queue
+            value_t next_id {_next_node_id.load()};
+            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
+            _next_node_id.exchange(next_id);
+            _instances_to_activate.clear();
+            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
+        }
         /// -------------------------------------------------------------------------------------------------------- ///
 
     private:

@@ -12,6 +12,7 @@ namespace search {
     /// This is not implemented in SearchMediator to avoid circular includes with ParallelWorker
     class IndependentQueuesMediator : public BaseMediator {
     public:
+        /// Don't call this constructor directly, use `create` instead.
         explicit IndependentQueuesMediator(unsigned int num_threads) : BaseMediator{num_threads} {}
 
         [[nodiscard]] std::size_t get_receiver_id(const Node &node, std::size_t from_id) override {

@@ -6,6 +6,7 @@
 namespace search {
     class DistributeAllMediator : public BaseMediator {
     public:
+        /// Don't call this constructor directly, use `create` instead.
         explicit DistributeAllMediator(unsigned int num_threads) : BaseMediator(num_threads), _next_receivers(_num_threads) {
             for (std::size_t i = 0; i < _num_threads; ++i) _next_receivers[i] = (i + 1) % _num_threads;
         }
