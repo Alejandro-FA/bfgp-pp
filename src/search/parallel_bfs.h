@@ -33,7 +33,6 @@ namespace search {
                 _mediator{std::move(mediator)}, _num_threads{num_threads}, _init_nodes_per_thread{init_nodes_per_thread} {
             assert(_num_threads > 0);
             assert(_init_nodes_per_thread > 0);
-            std::cout << "Init nodes per thread: " << _init_nodes_per_thread << std::endl;
             create_workers();
             _init_bfs = std::make_unique<BFS>(_theory->copy(), _gpp_factory());
             _init_bfs->set_verbose(false);

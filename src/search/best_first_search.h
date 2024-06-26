@@ -271,7 +271,10 @@ namespace search {
                     }
 
                     if (activate_instance) {
-                        std::osyncstream{std::cout} << "[ENGINE " << _id << "] Failure on instance " << _last_failed_instance_idx + 1 << ", reevaluating...\n";
+                        if (_verbose)
+                            std::osyncstream{std::cout}
+                                << "[ENGINE " << _id << "] Failure on instance "
+                                << _last_failed_instance_idx + 1 << ", reevaluating...\n";
                         activate_instance_request(_last_failed_instance_idx);
                     }
                 }
