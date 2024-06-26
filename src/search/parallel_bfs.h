@@ -33,7 +33,7 @@ namespace search {
                 _mediator{std::move(mediator)}, _num_threads{num_threads}, _init_nodes_per_thread{init_nodes_per_thread} {
             assert(_num_threads > 0);
             assert(_init_nodes_per_thread > 0);
-            create_workers();
+            initialize_workers();
             _init_bfs = std::make_unique<BFS>(_theory->copy(), _gpp_factory());
             _init_bfs->set_verbose(false);
             _init_bfs->set_open_size_limit(_num_threads * _init_nodes_per_thread);
@@ -95,8 +95,7 @@ namespace search {
         }
 
     private:
-        void create_workers() {
-            for (std::size_t i = 0; i < _num_threads; ++i) _mediator->create_worker(_theory->copy(), _gpp_factory());
+        void initialize_workers() {
             for (const auto &worker : _mediator->get_workers()) {
                 for (const auto &ef : _evaluation_functions) worker->add_evaluation_function(ef->copy());
                 worker->set_verbose(_verbose);
@@ -111,7 +110,7 @@ namespace search {
 
     private:
         const std::function<std::unique_ptr<GeneralizedPlanningProblem>()> _gpp_factory;
-        const std::unique_ptr<SearchMediator> _mediator {std::make_unique<BaseMediator>()};
+        const std::unique_ptr<SearchMediator> _mediator;
         const std::size_t _num_threads {std::thread::hardware_concurrency()};
         const std::size_t _init_nodes_per_thread {10};
         std::unique_ptr<BFS> _init_bfs;

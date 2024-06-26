@@ -179,7 +179,6 @@ namespace search {
                 /// Otherwise, constraints are added from the input program (last in roots) to avoid search duplicates
                 this->base_program = roots[roots.size()-1]->copy();
                 /// Also check whether the base program is a goal
-                std::scoped_lock lock{_pgp_mutex}; // Ensures that during evaluation no new instances are activated
                 _theory->set_initial_program(_gpp.get(), this->base_program.get());
                 auto base_node = std::make_shared<Node>(this->base_program->copy(),
                                                         vec_value_t(_evaluation_functions.size(), INF));
@@ -194,9 +193,8 @@ namespace search {
             }
 
             if (_open->empty()) { // Only add nodes if the queue is empty (otherwise we could repeat work of other threads)
-                for(int idx = roots.size()-1; idx >= 0; idx--){
+                for(int idx = roots.size()-1; idx >= 0; idx--) {
     //std::cout << "[INFO] new root node " << std::endl << roots[idx]->to_string(true) << std::endl;
-                    std::scoped_lock lock{_pgp_mutex}; // Ensures that during evaluation no new instances are activated
                     _theory->set_initial_program(_gpp.get(), roots[idx].get());
                     roots[idx]->run(_gpp.get()); /// This must be the first and unique run of each root
                     auto root_node =std::make_shared<Node>(std::move(roots[idx]),
@@ -237,69 +235,55 @@ namespace search {
                     // Evaluate the child (this must be the first and unique run of the program)
                     // Issue #4: keep the program run right before node evaluation, since PGP could change
                     // the number of active instances, hence yield to an inconsistent evaluation
-                    bool activate_instance {false};
+                    auto vps {child->get_program()->run(_gpp.get())};
+                    if(vps.empty()) continue;
+                    child->set_f(f(child.get()));
 
-                    { // The lock of this section prevents other threads from activating instances, but allows them read access
-                        std::scoped_lock lock{_pgp_mutex};
-
-                        auto vps {child->get_program()->run(_gpp.get())};
-                        if(vps.empty()) continue;
-                        child->set_f(f(child.get()));
-
-                        if (is_goal(child.get(), false, true)) {
-                            if (_verbose) std::osyncstream{std::cout} << "[INFO] Solution candidate!\n" << child->to_string();
-                            // if the program solves all instances finish
-                            bool all_goal = is_goal(child.get(), true, false);
-                            if (all_goal) {
-                                child->set_f(f(child.get()));
-                                add_node_request(child);
-                                _stop_source.request_stop();
-                                return child;
-                            }
-                            else{
-                                // Get the failure id
-                                assert(_last_failed_instance_idx != -1);
-                                assert(not _gpp->is_instance_active(_last_failed_instance_idx));
-                                activate_instance = true; // Indicate that the failed instance must be activated
-                                add_node_request(child); // add the current child, just in case is a correct partial solution
-                            }
-                        }
-                        else {
-                            // Standard A* but no chance to repeat programs so nodes are always pushed into priority queue
+                    if (is_goal(child.get(), false, true)) {
+                        if (_verbose) std::osyncstream{std::cout} << "[INFO] Solution candidate!\n" << child->to_string();
+                        // if the program solves all instances finish
+                        bool all_goal = is_goal(child.get(), true, false);
+                        if (all_goal) {
+                            child->set_f(f(child.get()));
                             add_node_request(child);
+                            _stop_source.request_stop();
+                            return child;
+                        }
+                        else{
+                            // Get the failure id
+                            assert(_last_failed_instance_idx != -1);
+                            assert(not _gpp->is_instance_active(_last_failed_instance_idx));
+                            add_node_request(child); // add the current child, just in case is a correct partial solution
+                            activate_instance_request(_last_failed_instance_idx); // activate the failed instance when possible
                         }
                     }
-
-                    if (activate_instance) {
-                        if (_verbose)
-                            std::osyncstream{std::cout}
-                                << "[ENGINE " << _id << "] Failure on instance "
-                                << _last_failed_instance_idx + 1 << ", reevaluating...\n";
-                        activate_instance_request(_last_failed_instance_idx);
+                    else {
+                        // Standard A* but no chance to repeat programs so nodes are always pushed into priority queue
+                        add_node_request(child);
                     }
+
+                    if (activation_requested()) activate_and_reevaluate();
                 }
             }
 
             return nullptr;
         }
 
-        /// NOTE: This method can be called from different threads, so it must be thread-safe.
-        void activate_and_reevaluate(id_type instance_idx) {
-            std::scoped_lock lock{_pgp_mutex}; // Unique access to the GPP active instances. No other thread can read nor write the active instances.
-            if (_gpp->is_instance_active(instance_idx)) return; // There is a small chance that 2 threads simultaneously request the activation of the same instance
-            _gpp->activate_instance(instance_idx);
-            value_t next_id {_next_node_id.load()};
-            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
-            _next_node_id.exchange(next_id);
-            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
-        }
-
         [[nodiscard]] vec_value_t current_evaluations() const {
             return _current_evaluations;
         }
 
-        [[nodiscard]] vec_value_t best_evaluations() const {
-            return _best_evaluations;
+        virtual void activate_and_reevaluate() {
+            // Activate failed instances
+            auto failed_instances {get_instances_to_activate()};
+            for (const auto &idx: failed_instances) _gpp->activate_instance(idx);
+
+            // Reevaluate the queue
+            value_t next_id {_next_node_id.load()};
+            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
+            _next_node_id.exchange(next_id);
+            _instances_to_activate.clear();
+            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
         }
 
     protected:
@@ -309,11 +293,24 @@ namespace search {
             add_node(std::move(node));
         }
 
+        /// -------------------------------- Methods to handle PGP instances --------------------------------------- ///
         /// Requests to activate an instance (and reevaluate the queue accordingly). Parallel algorithms can override
         /// this method to synchronize the activation.
         virtual void activate_instance_request(id_type instance_idx) {
-            activate_and_reevaluate(instance_idx);
+            if (_verbose) std::osyncstream{std::cout}
+                << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", reevaluating...\n";
+            _instances_to_activate.insert(instance_idx);
         }
+
+        [[nodiscard]] virtual bool activation_requested() const {
+            return not _instances_to_activate.empty();
+        }
+
+        [[nodiscard]] virtual std::set<id_type> get_instances_to_activate() const {
+            return _instances_to_activate;
+        }
+
+        /// -------------------------------------------------------------------------------------------------------- ///
 
     private:
         // accumulated cost
@@ -358,16 +355,18 @@ namespace search {
             oss << "[ENGINE " << _id << "]\n";
             oss << "Node id=" << n->get_id() << "\n";
             oss << "Expanded=" << _expanded_nodes << "\n";
-            {
-                std::scoped_lock lock{_pgp_mutex};
-                oss << "Evaluated=" << _evaluated_nodes << "\n";
-            }
+            oss << "Evaluated=" << _evaluated_nodes << "\n";
             oss << "Open queue size=" << _open->size() << "\n";
             oss << n->to_string() << "\n";
         }
 
+    protected:
+        std::unique_ptr<Frontier> _open;
+        std::size_t _id {0}; // Unique identifier for the engine
+        std::stop_source _stop_source; // Used to request the search to stop when a solution is found.
+
     private:
-        std::atomic<id_type> _next_node_id {0};
+        std::atomic<id_type> _next_node_id {0}; // Unique identifier for each created node
 
         // Search constraints
         std::size_t _queue_size_limit{std::numeric_limits<std::size_t>::max()};
@@ -375,17 +374,13 @@ namespace search {
 
         // TEST
         id_type _last_failed_instance_idx{-1};
-        vec_value_t _best_evaluations; // Keep value between solve calls
-        vec_value_t _current_evaluations;
         //bool _bitvec_theory;
         //std::set<std::vector<vec_value_t>> _closed_program_states;
 
-        mutable std::mutex _pgp_mutex; // Mutex to protect the active instances of a GPP from being modified while a node is being evaluated and added to the queue
-
-    protected:
-        std::unique_ptr<Frontier> _open;
-        std::size_t _id {0}; // Unique identifier for the engine
-        std::stop_source _stop_source; // Used to request the search to stop when a solution is found.
+        // Search state
+        vec_value_t _best_evaluations; // Keep value between solve calls
+        vec_value_t _current_evaluations;
+        std::set<id_type> _instances_to_activate;
     };
 }
 

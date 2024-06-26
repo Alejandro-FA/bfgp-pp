@@ -46,9 +46,9 @@
 
 #include "search/best_first_search.h"
 #include "search/parallel_bfs.h"
-#include "search/search_mediators/base_mediator.h"
 #include "search/search_mediators/distribute_all_mediator.h"
 #include "search/search_mediators/distribute_promising_mediator.h"
+#include "search/search_mediators/independent_queues_mediator.h"
 #include "theories/action_ram.h"
 
 
@@ -226,14 +226,18 @@ namespace factories {
         return programs;
     }
 
-    std::unique_ptr<search::SearchMediator> make_search_mediator(const utils::ArgumentParser *arg_parser) {
+    template<typename F>
+    std::unique_ptr<search::SearchMediator> make_search_mediator(const utils::ArgumentParser *arg_parser,
+                                                                 const theory::Theory& theory_template,
+                                                                 F gpp_factory) {
         auto parallel_strategy {arg_parser->get_parallel_strategy()};
+        auto num_threads {arg_parser->get_threads()};
         if (parallel_strategy == "distribute_promising")
-            return std::make_unique<search::DistributePromisingMediator>();
+            return search::SearchMediator::create<search::DistributePromisingMediator>(num_threads, theory_template, gpp_factory);
         else if (parallel_strategy == "distribute_all")
-            return std::make_unique<search::DistributeAllMediator>();
+            return search::SearchMediator::create<search::DistributeAllMediator>(num_threads, theory_template, gpp_factory);
         else if (parallel_strategy == "independent_queues")
-            return std::make_unique<search::BaseMediator>();
+            return search::SearchMediator::create<search::IndependentQueuesMediator>(num_threads, theory_template, gpp_factory);
         else // This should never happen, already checked in the argument parser
             utils::system_error("Wrong parallel strategy, \"" + parallel_strategy + "\" is unknown.", ERROR_UNKNOWN_PARALLEL_STRATEGY);
         return nullptr;
@@ -245,26 +249,30 @@ namespace factories {
     //  owned by the Engine.
     std::unique_ptr<search::ParallelBFS> make_parallel_bfs(const utils::ArgumentParser *arg_parser,
                                                            std::unique_ptr<GeneralizedPlanningProblem> gpp) {
-        return std::make_unique<search::ParallelBFS>(
-            make_theory(arg_parser),
-            std::move(gpp),
-            [arg_parser]() {
-                auto dom {factories::make_domain(arg_parser)};
-                auto gd {factories::make_generalized_domain(arg_parser, std::move(dom), false)};
-                auto new_gpp {factories::make_generalized_planning_problem(arg_parser, std::move(gd))};
+        auto gpp_factory = [arg_parser]() {
+            auto dom {factories::make_domain(arg_parser)};
+            auto gd {factories::make_generalized_domain(arg_parser, std::move(dom), false)};
+            auto new_gpp {factories::make_generalized_planning_problem(arg_parser, std::move(gd))};
 
-                auto th_name = arg_parser->get_theory_name();
-                if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
-                    new_gpp->activate_actions_theory();
-                }
-                if(arg_parser->is_progressive()){
-                    new_gpp->set_progressive(true);
-                    for(size_t instance_id = 1; instance_id < new_gpp->get_num_instances(); ++instance_id)
-                        new_gpp->deactivate_instance(instance_id);
-                }
-                return new_gpp;
-            },
-            make_search_mediator(arg_parser),
+            auto th_name = arg_parser->get_theory_name();
+            if( th_name.size() > 8u and th_name.substr(0,8) == "actions_" ){
+                new_gpp->activate_actions_theory();
+            }
+            if(arg_parser->is_progressive()){
+                new_gpp->set_progressive(true);
+                for(size_t instance_id = 1; instance_id < new_gpp->get_num_instances(); ++instance_id)
+                    new_gpp->deactivate_instance(instance_id);
+            }
+            return new_gpp;
+        };
+
+        auto theory {make_theory(arg_parser)};
+
+        return std::make_unique<search::ParallelBFS>(
+            theory->copy(),
+            std::move(gpp),
+            gpp_factory,
+            make_search_mediator(arg_parser, *theory, gpp_factory),
             arg_parser->get_threads(),
             arg_parser->get_init_nodes_per_thread()
         );

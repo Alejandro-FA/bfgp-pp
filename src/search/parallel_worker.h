@@ -19,8 +19,8 @@ namespace search {
     public:
         /// ParalllelWorker instances should only be created by a SearchMediator.
         explicit ParallelWorker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp,
-                              std::size_t id, SearchMediator& mediator)
-                : BFS{std::move(theory), std::move(gpp), std::make_unique<ThreadSafeFrontier>(), id}, _mediator{mediator} {}
+                              std::unique_ptr<Frontier> open, std::size_t id, SearchMediator& mediator)
+                : BFS{std::move(theory), std::move(gpp), std::move(open), id}, _mediator{mediator} {}
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             while (not _stop_source.stop_requested()) {
@@ -39,7 +39,9 @@ namespace search {
                     _stop_source.request_stop();
                 }
                 if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
-                dynamic_cast<ThreadSafeFrontier&>(*_open).wait_until_not_empty(_stop_source.get_token());
+                auto frontier {dynamic_cast<ThreadSafeFrontier*>(_open.get())};
+                if (frontier) frontier->wait_until_not_empty(_stop_source.get_token());
+                else break;
             }
             if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " has been interrupted.\n";
             return nullptr;
@@ -52,9 +54,30 @@ namespace search {
             _mediator.distribute_node(std::move(node), _id);
         }
 
+        /// -------------------------------- Methods to handle PGP instances --------------------------------------- ///
         void activate_instance_request(id_type instance_idx) override {
-            _mediator.activate_and_reevaluate(instance_idx);
+            if (_verbose) std::osyncstream{std::cout}
+                    << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", requesting reevaluation...\n";
+            _mediator.activate_instance_request(instance_idx);
         }
+
+        [[nodiscard]] bool activation_requested() const override {
+            return _mediator.activation_requested();
+        }
+
+        [[nodiscard]] std::set<id_type> get_instances_to_activate() const override {
+            return _mediator.get_instances_to_activate();
+        }
+
+        /// Blocks execution of all workers until their queue has been reevaluated.
+        /// Perhaps it would be possible to block a little less, but we need to ensure that nodes are not extracted
+        /// from the queue while it is being evaluated (adding nodes might be fine).
+        void activate_and_reevaluate() override {
+            _mediator.wait_to_start_reevaluation();
+            BFS::activate_and_reevaluate();
+            _mediator.wait_to_stop_reevaluation();
+        }
+        /// -------------------------------------------------------------------------------------------------------- ///
 
     private:
         SearchMediator& _mediator; // As long as workers are owned by the mediator, this reference will be valid (because the mediator will always outlive the workers).
