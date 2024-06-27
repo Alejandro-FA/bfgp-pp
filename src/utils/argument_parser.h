@@ -250,11 +250,13 @@ namespace utils {
                 _progressive = false;
             if(arg_map.find(_threads_ntype) == arg_map.end())
                 _threads = 1;
-            if(arg_map.find(_init_nodes_per_thread_ntype) == arg_map.end())
-                _init_nodes_per_thread = 10;
-            if(arg_map.find(_parallel_strategy_ntype) == arg_map.end()) {
-                _parallel_strategy = "independent_queues";
+            if(arg_map.find(_init_nodes_per_thread_ntype) == arg_map.end()) {
+                double max_nodes_generated_sequentially = 4000; // empirical value
+                double nodes_to_generate_sequentially = std::min(max_nodes_generated_sequentially, std::pow(1.9, _program_lines));
+                _init_nodes_per_thread = std::ceil(nodes_to_generate_sequentially / _threads); // ceil to avoid 0
             }
+            if(arg_map.find(_parallel_strategy_ntype) == arg_map.end())
+                _parallel_strategy = "independent_queues";
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
         }
