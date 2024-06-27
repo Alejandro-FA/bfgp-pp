@@ -24,6 +24,7 @@
 #define ERROR_INAPPLICABLE_INSTRUCTION (-12)
 #define ERROR_INFINITE_PROGRAM (-13)
 #define ERROR_DEADEND (-14)
+#define ERROR_UNKNOWN_PARALLEL_STRATEGY (-15)
 
 #define NAME_VAR_TYPE_PREDICATE "predicate" // FIXME (Issue #32): delete this macro
 #define NAME_VAR_TYPE_CONSTANT "constant" // FIXME (Issue #32): delete this macro

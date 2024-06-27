@@ -187,6 +187,18 @@ namespace utils {
                                 std::to_string(arg_vals.size()) + " found.");
                     parse_threads(arg_vals[0]);
                 }
+                else if(arg_type == _init_nodes_per_thread_ntype){
+                    if(arg_vals.size() != 1u)
+                        helper("Exactly one value for number of starting nodes expected but " +
+                               std::to_string(arg_vals.size()) + " found.");
+                    parse_init_nodes_per_thread(arg_vals[0]);
+                }
+                else if(arg_type == _parallel_strategy_ntype) {
+                    if (arg_vals.size() != 1u)
+                        helper("Exactly one parallel strategy expected but " +
+                                std::to_string(arg_vals.size()) + " found.");
+                    parse_parallel_strategy(arg_vals[0]);
+                }
                 else if(arg_type == _output_file_ntype){
                     if(arg_vals.size() != 1u)
                         helper("Exactly one output file expected but " + std::to_string(arg_vals.size()) + " found.");
@@ -238,6 +250,13 @@ namespace utils {
                 _progressive = false;
             if(arg_map.find(_threads_ntype) == arg_map.end())
                 _threads = 1;
+            if(arg_map.find(_init_nodes_per_thread_ntype) == arg_map.end()) {
+                double max_nodes_generated_sequentially = 4000; // empirical value
+                double nodes_to_generate_sequentially = std::min(max_nodes_generated_sequentially, std::pow(1.9, _program_lines));
+                _init_nodes_per_thread = std::ceil(nodes_to_generate_sequentially / _threads); // ceil to avoid 0
+            }
+            if(arg_map.find(_parallel_strategy_ntype) == arg_map.end())
+                _parallel_strategy = "distribute_promising";
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
         }
@@ -409,6 +428,19 @@ namespace utils {
             _threads = utils::str_to_num(str_threads);
         }
 
+        void parse_init_nodes_per_thread(const std::string &str_init_nodes_per_thread){
+            // Checking input type is a valid number
+            if(not utils::is_number(str_init_nodes_per_thread))
+                helper("Wrong input format. The input number of starting nodes per thread " + str_init_nodes_per_thread + " is not a number.");
+            _init_nodes_per_thread = utils::str_to_num(str_init_nodes_per_thread);
+        }
+
+        void parse_parallel_strategy(const std::string &str_parallel_strategy){
+            if (_valid_parallel_strategies.find(str_parallel_strategy) == _valid_parallel_strategies.end())
+                helper("Parallel strategy \"" + _parallel_strategy + "\" does not exist.");
+            _parallel_strategy = str_parallel_strategy;
+        }
+
         void parse_output_file(const std::string &str_output_file){
             _output_file = str_output_file;
             // if (!std::filesystem::exists(_output_file))  // do not check whether it exists
@@ -483,6 +515,14 @@ namespace utils {
             return _threads;
         }
 
+        [[nodiscard]] unsigned int get_init_nodes_per_thread() const{
+            return _init_nodes_per_thread;
+        }
+
+        [[nodiscard]] std::string get_parallel_strategy() const{
+            return _parallel_strategy;
+        }
+
         [[nodiscard]] std::string get_output_file() const{
             return _output_file;
         }
@@ -510,6 +550,10 @@ namespace utils {
                 return _num_extra_pointers_ntype;
             if (arg_type == _progressive_type or arg_type == _progressive_stype) return _progressive_ntype;
             if (arg_type == _threads_type or arg_type == _threads_stype) return _threads_ntype;
+            if (arg_type == _init_nodes_per_thread_type or arg_type == _init_nodes_per_thread_stype)
+                return _init_nodes_per_thread_ntype;
+            if (arg_type == _parallel_strategy_type or arg_type == _parallel_strategy_stype)
+                return _parallel_strategy_ntype;
             if (arg_type == _output_file_type or arg_type == _output_file_stype) return _output_file_ntype;
             if (arg_type == _verbosity_type or arg_type == _verbosity_stype) return _verbosity_ntype;
             if (arg_type == _save_pddl_plans_type or arg_type == _save_pddl_plans_stype) return _save_pddl_plans_ntype;
@@ -529,7 +573,8 @@ namespace utils {
         int _num_extra_pointers;  // number of extra pointers per argument type
         bool _progressive; // optional for synthesis and repair only (default: false)
         unsigned int _threads; // optional for synthesis and repair only (default: 1)
-        unsigned int _num_starting_nodes; // optional for PARALLEL synthesis and repair only (default: 10)
+        unsigned int _init_nodes_per_thread; // optional for PARALLEL synthesis and repair only (default: 10)
+        std::string _parallel_strategy; // optional for synthesis and repair only (default: "independent_queues")
         std::string _output_file;  // optional for synthesis and repair only (default: "")
         bool _verbose; // optional verbose output
         bool _save_pddl_plans; // optional save pddl action plans in a file
@@ -563,6 +608,12 @@ namespace utils {
         inline static const std::string _threads_type = "--threads";
         inline static const std::string _threads_stype = "-n"; // short type
         inline static const std::string _threads_ntype = "threads"; // normalized type
+        inline static const std::string _init_nodes_per_thread_type = "--init-nodes-per-thread"; // FIXME: don't allow if threads=1
+        inline static const std::string _init_nodes_per_thread_stype = "-N"; // short type
+        inline static const std::string _init_nodes_per_thread_ntype = "init_nodes_per_thread"; // normalized type
+        inline static const std::string _parallel_strategy_type = "--parallel-strategy"; // FIXME: don't allow if threads=1
+        inline static const std::string _parallel_strategy_stype = "-ps";
+        inline static const std::string _parallel_strategy_ntype = "parallel_strategy";
         inline static const std::string _infinite_detection_type = "--infinite-detection";
         inline static const std::string _infinite_detection_stype = "-inf"; // short type
         inline static const std::string _infinite_detection_ntype = "infinite_detection"; // normalized type
@@ -596,6 +647,7 @@ namespace utils {
                                                                           {"False", false},
                                                                           {"false", false},
                                                                           {"0", false},};
+        inline static const std::set<std::string> _valid_parallel_strategies = {"independent_queues", "distribute_all", "distribute_promising"};
     };
 }
 #endif //__ARGUMENT_PARSER_H__
