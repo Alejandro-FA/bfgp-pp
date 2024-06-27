@@ -2,12 +2,13 @@
 ![Tests Status](https://github.com/jsego/bfgp-pp/actions/workflows/tests.yml/badge.svg)
 
 
-# BFGP++
+# Parallel BFGP++
 
 A framework based on [Best-First Generalized Planning](https://github.com/rleap-project/best-first-generalized-planning) where 
 solutions are either assembly-like programs, or structured programs 
 that are syntactically terminating.
 
+This repository is a fork of [bfgp-pp](https://github.com/jsego/bfgp-pp) where the search engine has been parallelized.
 
 ## Installation
 
@@ -26,9 +27,9 @@ pip install -e .
 ## Running Example
 
 ### 1. Synthesis Mode
-Synthesis of a generalized plan with `8` lines for Gripper domain:
+Synthesis of a generalized plan with `8` lines for Gripper domain and `4` parallel threads:
 ```shell
-./main.bin -m synthesis -l 8 -f domains/gripper/synthesis/ -o gripper -pgp True
+./main.bin -m synthesis -l 8 -f domains/gripper/synthesis/ -o gripper -pgp True --threads 4
 ```
 The returned strategy, must pick a ball from room A, move to room B, 
 drop the ball and get back to room A for the next ball, until all
@@ -98,7 +99,7 @@ where only the first loop is programmed:
 The solution will be found much faster than in synthesis mode for this case.
 Run the repair mode as follows:
 ```shell
-./main.bin -m repair -f domains/gripper/synthesis/ -p domains/gripper/repair/gripper.prog -pgp True 
+./main.bin -m repair -f domains/gripper/synthesis/ -p domains/gripper/repair/gripper.prog -pgp True --threads 4
 ```
 
 ## Input Arguments

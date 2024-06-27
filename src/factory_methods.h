@@ -46,7 +46,6 @@
 
 #include "search/best_first_search.h"
 #include "search/parallel_bfs.h"
-#include "search/search_mediators/distribute_all_mediator.h"
 #include "search/search_mediators/distribute_promising_mediator.h"
 #include "search/search_mediators/independent_queues_mediator.h"
 #include "theories/action_ram.h"
@@ -234,8 +233,6 @@ namespace factories {
         auto num_threads {arg_parser->get_threads()};
         if (parallel_strategy == "distribute_promising")
             return search::SearchMediator::create<search::DistributePromisingMediator>(num_threads, theory_template, gpp_factory);
-        else if (parallel_strategy == "distribute_all")
-            return search::SearchMediator::create<search::DistributeAllMediator>(num_threads, theory_template, gpp_factory);
         else if (parallel_strategy == "independent_queues")
             return search::SearchMediator::create<search::IndependentQueuesMediator>(num_threads, theory_template, gpp_factory);
         else // This should never happen, already checked in the argument parser

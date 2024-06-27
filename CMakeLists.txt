@@ -103,9 +103,8 @@ add_executable(main.bin
         src/search/frontiers/thread_safe_frontier.h
         src/search/search_mediators/search_mediator.h
         src/search/search_mediators/base_mediator.h
-        src/search/search_mediators/distribute_all_mediator.h
-        src/search/search_mediators/distribute_promising_mediator.h
         src/search/search_mediators/independent_queues_mediator.h
+        src/search/search_mediators/distribute_promising_mediator.h
 )
 
 enable_testing()

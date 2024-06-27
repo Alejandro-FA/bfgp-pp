@@ -133,6 +133,10 @@ namespace utils {
                     " specifies the number of threads to use for parallelized synthesis; "
                     " type: strictly positive integer; "
                     " default: 1\n"
+                    "  " + _parallel_strategy_stype + ", " + _parallel_strategy_type + " PARALLEL STRATEGY  available in \"synthesis\" mode with THREADS > 1; "
+                    " specifies the parallelization strategy to use for synthesis; "
+                    " type: one of {independent_queues, distribute_promising}; "
+                    " default: distribute_promising\n"
                     "  " + _verbosity_stype + ", " + _verbosity_type + " for verbose output; type: boolean"
                     " (True, False; true, false; 1, 0); default: false\n\n"
                     "usage examples:\n"
@@ -647,7 +651,7 @@ namespace utils {
                                                                           {"False", false},
                                                                           {"false", false},
                                                                           {"0", false},};
-        inline static const std::set<std::string> _valid_parallel_strategies = {"independent_queues", "distribute_all", "distribute_promising"};
+        inline static const std::set<std::string> _valid_parallel_strategies = {"independent_queues", "distribute_promising"};
     };
 }
 #endif //__ARGUMENT_PARSER_H__
