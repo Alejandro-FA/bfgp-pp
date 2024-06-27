@@ -122,6 +122,10 @@ particular order, e.g.,
   * `lc`, counts the number of loops in a program,
   * `mri`, counts the number of repeated instructions,
   * ...
+* Threads (`--threads` or `-n`): number of threads to use for (parallel) synthesis or repair. The default is `1`.
+* Parallelization strategy (`--parallel-strategy` or `- ps`): `distribute_promising` (default) or `independent_queues`.
+In the first strategy threads can send nodes to other threads if they have a promising heuristic value, and in the
+second strategy threads work independently and do not share nodes.
 
 ## References
 
