@@ -1,6 +1,7 @@
 #ifndef __SEARCH_FRONTIER_H__
 #define __SEARCH_FRONTIER_H__
 
+#include <atomic>
 #include <memory>
 #include <queue>
 #include "../node.h"
@@ -35,9 +36,9 @@ namespace search {
         /// Reevaluate all nodes in the frontier.
         /// \param f Evaluation function used to prioritize the nodes.
         /// \param gpp Generalized Planning Problem to run the programs.
-        virtual void reevaluate(const std::function<vec_value_t(const Node*)>& f, GeneralizedPlanningProblem* gpp, id_type& next_node_id) {
-            std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> old_open;
-            std::swap(old_open, _open);
+        /// \param next_node_id Next id to assign to the reevaluated nodes. It will be incremented for each node.
+        void reevaluate(const std::function<vec_value_t(const Node*)>& f, GeneralizedPlanningProblem* gpp, std::atomic<id_type>& next_node_id) {
+            auto old_open {swap_with_empty()};
             while (not old_open.empty()) {
                 auto node {old_open.top()};
                 old_open.pop();
@@ -45,21 +46,19 @@ namespace search {
                 node->set_f(f(node.get()));
                 node->set_id(next_node_id++); // Node reevaluated!
                 node->get_program()->clear_program_states();
-                _open.push(std::move(node));
+                push(std::move(node));
             }
         }
 
     protected:
+        virtual std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> swap_with_empty() {
+            std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> old_open;
+            std::swap(old_open, _open);
+            return old_open;
+        }
+
         // In priority_queue, unique_ptr cannot be accessed through top() because is deleted
         std::priority_queue<std::shared_ptr<Node>, std::vector<std::shared_ptr<Node> >, NodeComparator> _open;
-
-        template<std::derived_from<Frontier> T>
-        std::unique_ptr<T> copy_and_reset_impl(T& frontier) const {
-            auto new_frontier {std::make_unique<T>()};
-            using std::swap;
-            swap(frontier, *new_frontier);
-            return new_frontier;
-        }
     };
 }
 

@@ -40,10 +40,6 @@ namespace search{
             return _evaluated_nodes;
         }
 
-        [[nodiscard]] bool get_verbose() const{
-            return _verbose;
-        }
-
         /// Caution! This method is not thread-safe.
         [[nodiscard]] GeneralizedPlanningProblem *get_generalized_planning_problem() {
             return _gpp.get();

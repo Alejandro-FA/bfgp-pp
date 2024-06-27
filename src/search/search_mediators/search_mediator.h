@@ -53,12 +53,12 @@ namespace search {
         }
 
         /// Locks a thread until all threads are ready to start reevaluation of their queuses
-        void wait_to_start_reevaluation() {
+        void wait_to_start_activation() {
             _start_barrier.arrive_and_wait();
         }
 
         /// Locks a thread until all threads have stopped reevaluation of their queues
-        void wait_to_stop_reevaluation() {
+        void wait_to_finish_activation() {
             _stop_barrier.arrive_and_wait();
         }
 

@@ -65,17 +65,17 @@ namespace search {
             return _mediator.activation_requested();
         }
 
-        [[nodiscard]] std::set<id_type> get_instances_to_activate() const override {
-            return _mediator.get_instances_to_activate();
-        }
-
-        /// Blocks execution of all workers until their queue has been reevaluated.
-        /// Perhaps it would be possible to block a little less, but we need to ensure that nodes are not extracted
-        /// from the queue while it is being evaluated (adding nodes might be fine).
-        void activate_and_reevaluate() override {
-            _mediator.wait_to_start_reevaluation();
-            BFS::activate_and_reevaluate();
-            _mediator.wait_to_stop_reevaluation();
+        /// Blocks execution of all workers until all of them have activated the failed instances.
+        /// The queue reevaluation is performed in a non-blocking way. Once a thread finishes reevaluating its queue,
+        /// it can start working again without waiting for the other threads to finish. It can even send nodes to other
+        /// threads while they are reevaluating their queues. The only operation that should not be allowed while
+        /// reevaluating the queue is to extract nodes, but this is guaranteed to not happen because workers can only
+        /// select nodes from their queues.
+        void activate_failed_instances() override {
+            _mediator.wait_to_start_activation();
+            for (const auto& instance_idx : _mediator.get_instances_to_activate())
+                _gpp->activate_instance(instance_idx);
+            _mediator.wait_to_finish_activation();
         }
         /// -------------------------------------------------------------------------------------------------------- ///
 

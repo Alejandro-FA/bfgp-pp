@@ -51,122 +51,10 @@ namespace search {
             _open->push(std::move(node));
         }
 
-        std::shared_ptr<Node> select_node() {
+        /// Careful! This method is not thread-safe. Selecting nodes from the queue of another thread while it is
+        /// reevaluating its queue can lead to undefined behavior. Only call in single-threaded environments.
+        [[nodiscard]] std::shared_ptr<Node> select_node() {
             return _open->select_node();
-        }
-
-        [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
-            auto p {node->get_program()};
-            auto vps {run_program ? p->run(_gpp.get(), false, only_active_instances) : p->get_program_states()};
-            _last_failed_instance_idx = -1;
-
-            // FIXME: if this happens, then progressive mode fails
-            if (vps.empty()) {
-                //std::cout <<run_program << "\n"<< p->to_string(false) << std::endl;
-                _last_failed_instance_idx = p->get_failed_instance_idx();
-                return false; // Check whether some error occurred during execution
-            }
-
-            id_type local_id = 0;
-            for(const auto& idx : _gpp->get_instance_idxs(only_active_instances)){
-            //for (id_type id = 0; id < (id_type)vps.size(); id++) {
-            //    if(_gpp->is_progressive() and (not _gpp->is_instance_active(id))) continue;
-                auto ins = _gpp->get_instance(idx);
-                auto line = vps[local_id]->get_line();
-                auto end = dynamic_cast<const instructions::End*>(p->get_instruction(line));
-                // It is not a goal, if the instruction is not an END
-                if(end == nullptr) {
-                    _last_failed_instance_idx = idx;
-                    return false;
-                }
-                // If the instruction is an END, it cannot be a goal if it is not applicable
-                //if(not end->is_applicable(ins, vps[local_id].get())) {  /// vps is a vector of unique pointers
-                if(not end->is_applicable(ins, vps[local_id])) {  /// vps is a vector of raw pointers
-                    _last_failed_instance_idx = idx;
-                    return false;
-                }
-                // Special test for theory 'actions'
-                if(_gpp->is_actions_theory()){
-                    // Close world assumption: goal is a state, so check that all what is true in the state holds
-                    auto goal_state = ins->get_goal_state();
-                    for(const auto& fact : vps[local_id]->get_state()->get_facts()){
-                        auto f_name = fact->get_name();
-                        if(f_name.size() > 8u and f_name.substr(0,8) == "(action_") continue;
-                        if(fact->get_value() != goal_state->get_value(fact)) {
-                            _last_failed_instance_idx = idx;
-                            return false;
-                        }
-                    }
-                }
-
-                ++local_id;
-            }
-            return true;
-        }
-
-        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
-            //int pc_max = -1;
-            auto p = node->get_program();
-            auto instructions = p->get_instructions();
-            int pc_max = p->get_pc_max();  /// Retrieve pc_max from previous program execution
-
-            // Failure case either when the next valid line is not found or if an instruction is already programmed
-            if (pc_max == -1 or p->get_instruction(pc_max) != nullptr) return {};
-
-            //bool only_end = false;  // ToDo: implement after bitvec theory
-            //if(_bitvec_theory and pc_max > 0){
-            //    auto ins_str = p->get_instruction(pc_max-1)->to_string(false);
-            //    if(ins_str.find("vector(ptr-goal) =") != std::string::npos)
-            //        only_end = true;
-            //}
-
-            std::vector<std::shared_ptr<Node> > childs;
-            auto gd = _gpp->get_generalized_domain();
-            int maxi = std::max(1, int(_evaluation_functions.size()));
-
-            for (const auto &ins: gd->get_instructions()) {
-//std::cout << "[INFO] checking new expansion with instruction:\n" << ins->to_string(true) << "\n";
-                /******
-                //if(_bitvec_theory){  // ToDo: implement after bitvec theory
-                //    auto ins_end = std::dynamic_pointer_cast<instructions::End>(i);
-                //    if(only_end and not ins_end) continue;
-                //}
-                 // Check if the instruction is an ITE
-                //auto ins_ite = dynamic_cast<instructions::bitvec::ITE*>(ins);  // ToDo: implement after bitvec theory
-                //if(ins_ite){ // ToDo: implement after bitvec theory
-                //    // 1. Check first if only ite can be programmed
-                //    if (not only_branching) continue;
-                //}
-                 *****/
-
-                if(nullptr != base_program and (not check_base_constraints(p, pc_max, ins))) continue;
-
-                if( not _theory->check_syntax_constraints(p, pc_max, ins) or
-                    not _theory->check_semantic_constraints(_gpp.get(), p, pc_max, ins)) continue;
-
-                // Make a new child
-                auto p2 = p->copy();
-                p2->set_instruction(pc_max, ins);
-
-                // Special expansion for CPP theory.
-                // If the current instruction is a FOR, we also program an ENDFOR at destination line
-                auto ins_for = dynamic_cast<const instructions::For*>(ins);
-                if (ins_for) {
-                    auto for_ptr = ins_for->get_pointer();
-                    auto dest_line = ins_for->get_destination_line();
-                    auto endfor_name = "endfor(" + for_ptr->get_name() + (ins_for->get_modifier()>0?"++":"--") +
-                            "," + std::to_string(pc_max) + ")";
-                    auto endfor_instruction = gd->get_instruction(endfor_name);
-                    p2->set_instruction(dest_line, endfor_instruction);
-                }
-
-                // Update constraints
-                //_theory->update(p2.get(), ins);
-
-                childs.emplace_back(std::make_shared<Node>(std::move(p2), vec_value_t(maxi, 0)));
-            }
-            _expanded_nodes++;
-            return childs;
         }
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
@@ -269,6 +157,8 @@ namespace search {
             return nullptr;
         }
 
+        /// Careful! This method is not thread-safe. Protection is required if the method has to be called from
+        /// different threads.
         [[nodiscard]] vec_value_t current_evaluations() const {
             return _current_evaluations;
         }
@@ -286,32 +176,144 @@ namespace search {
         virtual void activate_instance_request(id_type instance_idx) {
             if (_verbose) std::osyncstream{std::cout}
                 << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", reevaluating...\n";
-            _instances_to_activate.insert(instance_idx);
+            _activation_requested = true;
         }
 
         [[nodiscard]] virtual bool activation_requested() const {
-            return not _instances_to_activate.empty();
+            return _activation_requested;
         }
 
-        [[nodiscard]] virtual std::set<id_type> get_instances_to_activate() const {
-            return _instances_to_activate;
-        }
-
-        virtual void activate_and_reevaluate() {
-            // Activate failed instances
-            auto failed_instances {get_instances_to_activate()};
-            for (const auto &idx: failed_instances) _gpp->activate_instance(idx);
-
-            // Reevaluate the queue
-            value_t next_id {_next_node_id.load()};
-            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), next_id);
-            _next_node_id.exchange(next_id);
-            _instances_to_activate.clear();
-            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
+        virtual void activate_failed_instances() {
+            _gpp->activate_instance(_last_failed_instance_idx);
         }
         /// -------------------------------------------------------------------------------------------------------- ///
 
     private:
+        [[nodiscard]] bool is_goal(Node* node, bool run_program, bool only_active_instances) {
+            auto p {node->get_program()};
+            auto vps {run_program ? p->run(_gpp.get(), false, only_active_instances) : p->get_program_states()};
+            _last_failed_instance_idx = -1;
+
+            // FIXME: if this happens, then progressive mode fails
+            if (vps.empty()) {
+                //std::cout <<run_program << "\n"<< p->to_string(false) << std::endl;
+                _last_failed_instance_idx = p->get_failed_instance_idx();
+                return false; // Check whether some error occurred during execution
+            }
+
+            id_type local_id = 0;
+            for(const auto& idx : _gpp->get_instance_idxs(only_active_instances)){
+                //for (id_type id = 0; id < (id_type)vps.size(); id++) {
+                //    if(_gpp->is_progressive() and (not _gpp->is_instance_active(id))) continue;
+                auto ins = _gpp->get_instance(idx);
+                auto line = vps[local_id]->get_line();
+                auto end = dynamic_cast<const instructions::End*>(p->get_instruction(line));
+                // It is not a goal, if the instruction is not an END
+                if(end == nullptr) {
+                    _last_failed_instance_idx = idx;
+                    return false;
+                }
+                // If the instruction is an END, it cannot be a goal if it is not applicable
+                //if(not end->is_applicable(ins, vps[local_id].get())) {  /// vps is a vector of unique pointers
+                if(not end->is_applicable(ins, vps[local_id])) {  /// vps is a vector of raw pointers
+                    _last_failed_instance_idx = idx;
+                    return false;
+                }
+                // Special test for theory 'actions'
+                if(_gpp->is_actions_theory()){
+                    // Close world assumption: goal is a state, so check that all what is true in the state holds
+                    auto goal_state = ins->get_goal_state();
+                    for(const auto& fact : vps[local_id]->get_state()->get_facts()){
+                        auto f_name = fact->get_name();
+                        if(f_name.size() > 8u and f_name.substr(0,8) == "(action_") continue;
+                        if(fact->get_value() != goal_state->get_value(fact)) {
+                            _last_failed_instance_idx = idx;
+                            return false;
+                        }
+                    }
+                }
+
+                ++local_id;
+            }
+            return true;
+        }
+
+        [[nodiscard]] std::vector<std::shared_ptr<Node> > expand_node(Node* node) {
+            //int pc_max = -1;
+            auto p = node->get_program();
+            auto instructions = p->get_instructions();
+            int pc_max = p->get_pc_max();  /// Retrieve pc_max from previous program execution
+
+            // Failure case either when the next valid line is not found or if an instruction is already programmed
+            if (pc_max == -1 or p->get_instruction(pc_max) != nullptr) return {};
+
+            //bool only_end = false;  // ToDo: implement after bitvec theory
+            //if(_bitvec_theory and pc_max > 0){
+            //    auto ins_str = p->get_instruction(pc_max-1)->to_string(false);
+            //    if(ins_str.find("vector(ptr-goal) =") != std::string::npos)
+            //        only_end = true;
+            //}
+
+            std::vector<std::shared_ptr<Node> > childs;
+            auto gd = _gpp->get_generalized_domain();
+            int maxi = std::max(1, int(_evaluation_functions.size()));
+
+            for (const auto &ins: gd->get_instructions()) {
+                //std::cout << "[INFO] checking new expansion with instruction:\n" << ins->to_string(true) << "\n";
+                /******
+                //if(_bitvec_theory){  // ToDo: implement after bitvec theory
+                //    auto ins_end = std::dynamic_pointer_cast<instructions::End>(i);
+                //    if(only_end and not ins_end) continue;
+                //}
+                 // Check if the instruction is an ITE
+                //auto ins_ite = dynamic_cast<instructions::bitvec::ITE*>(ins);  // ToDo: implement after bitvec theory
+                //if(ins_ite){ // ToDo: implement after bitvec theory
+                //    // 1. Check first if only ite can be programmed
+                //    if (not only_branching) continue;
+                //}
+                 *****/
+
+                if(nullptr != base_program and (not check_base_constraints(p, pc_max, ins))) continue;
+
+                if( not _theory->check_syntax_constraints(p, pc_max, ins) or
+                    not _theory->check_semantic_constraints(_gpp.get(), p, pc_max, ins)) continue;
+
+                // Make a new child
+                auto p2 = p->copy();
+                p2->set_instruction(pc_max, ins);
+
+                // Special expansion for CPP theory.
+                // If the current instruction is a FOR, we also program an ENDFOR at destination line
+                auto ins_for = dynamic_cast<const instructions::For*>(ins);
+                if (ins_for) {
+                    auto for_ptr = ins_for->get_pointer();
+                    auto dest_line = ins_for->get_destination_line();
+                    auto endfor_name = "endfor(" + for_ptr->get_name() + (ins_for->get_modifier()>0?"++":"--") +
+                                       "," + std::to_string(pc_max) + ")";
+                    auto endfor_instruction = gd->get_instruction(endfor_name);
+                    p2->set_instruction(dest_line, endfor_instruction);
+                }
+
+                // Update constraints
+                //_theory->update(p2.get(), ins);
+
+                childs.emplace_back(std::make_shared<Node>(std::move(p2), vec_value_t(maxi, 0)));
+            }
+            _expanded_nodes++;
+            return childs;
+        }
+
+        /// Reevaluate the queue after an instance activation request.
+        void activate_and_reevaluate() {
+            // Activate failed instances
+            activate_failed_instances();
+            _activation_requested = false;
+
+            // Reevaluate the queue
+            _open->reevaluate([this](const Node* node) { return f(node); }, _gpp.get(), _next_node_id);
+            if (_verbose) std::osyncstream{std::cout} << "[ENGINE " << _id << "] Reevaluation done!\n";
+        }
+
         // accumulated cost
         //virtual value_t g(const Node* node) = 0;
 
@@ -379,7 +381,7 @@ namespace search {
         // Search state
         vec_value_t _best_evaluations; // Keep value between solve calls
         vec_value_t _current_evaluations;
-        std::set<id_type> _instances_to_activate;
+        bool _activation_requested {false};
     };
 }
 
