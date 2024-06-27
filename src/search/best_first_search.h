@@ -320,6 +320,7 @@ namespace search {
         // heuristic functions
         //virtual vec_value_t h(const Node* node) = 0;
 
+        /// Evaluation function. Small values are better.
         [[nodiscard]] vec_value_t f(const Node* node) {
             _evaluated_nodes++;
             auto p = node->get_program();

@@ -256,7 +256,7 @@ namespace utils {
                 _init_nodes_per_thread = std::ceil(nodes_to_generate_sequentially / _threads); // ceil to avoid 0
             }
             if(arg_map.find(_parallel_strategy_ntype) == arg_map.end())
-                _parallel_strategy = "independent_queues";
+                _parallel_strategy = "distribute_promising";
             if(arg_map.find(_verbosity_ntype) == arg_map.end())
                 _verbose = false;
         }
