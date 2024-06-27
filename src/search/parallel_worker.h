@@ -24,24 +24,40 @@ namespace search {
 
         [[nodiscard]] std::shared_ptr<Node> solve(std::vector<std::unique_ptr<Program>> roots = {}) override {
             while (not _stop_source.stop_requested()) {
+                // Start searching
                 if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " starts searching.\n";
                 _mediator.notify_active(_id);
-                std::shared_ptr<Node> solution {BFS::solve()};
+                std::shared_ptr<Node> solution {BFS::solve(std::move(roots))}; // After the first iteration `roots` will be empty
+                _mediator.notify_inactive(_id);
+
+                // Check if a solution was found
                 if (solution != nullptr) {
                     if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " found a SOLUTION!\n";
-                    return solution;
+                    return solution; // The stop is already requested inside BFS::solve, no need to request it again.
                 }
 
-                // Wait until more work arrives, or until an interruption is requested (because of solution found or search finished).
-                _mediator.notify_inactive(_id);
-                if (_mediator.all_inactive()) {
-                    std::cout << "All workers are inactive. Stopping search.\n";
-                    _stop_source.request_stop();
-                }
-                if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
+                // Check if the search was interrupted
+                if (_stop_source.stop_requested()) break;
+
+                // If other threads cannot send us more work, stop searching. If we can receive more work, wait until
+                // more nodes arrive, until an interruption is requested (because of solution found or search finished),
+                // or until all workers are inactive.
                 auto frontier {dynamic_cast<ThreadSafeFrontier*>(_open.get())};
-                if (frontier) frontier->wait_until_not_empty(_stop_source.get_token());
-                else break;
+                if (frontier == nullptr) {
+                    if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " has finished searching.\n";
+                    return nullptr;
+                }
+                else {
+                    // Check if all workers are inactive
+                    if (_mediator.all_inactive()) {
+                        std::cout << "All workers are inactive. Stopping search.\n";
+                        _stop_source.request_stop();
+                    }
+                    else {
+                        if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " is waiting to receive nodes.\n";
+                        frontier->wait_until_not_empty(_stop_source.get_token());
+                    }
+                }
             }
             if (_verbose) std::osyncstream{std::cout} << "[DEBUG] Worker " << _id << " has been interrupted.\n";
             return nullptr;
