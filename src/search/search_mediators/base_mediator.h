@@ -19,6 +19,11 @@ namespace search {
             _workers[to_id]->add_node(std::move(node), from_id != to_id);
         }
 
+        void activate_instance_request(id_type instance_idx) override {
+            for (const auto & _worker : _workers)
+                _worker->add_instance_to_activate(instance_idx);
+        }
+
         std::unique_ptr<ParallelWorker> create_worker(std::unique_ptr<theory::Theory> theory, std::unique_ptr<GeneralizedPlanningProblem> gpp, unsigned int id) override {
             auto worker {std::make_unique<ParallelWorker>(std::move(theory), std::move(gpp), _create_frontier(), id, *this)};
             worker->set_stop_source(_stop_source);

@@ -70,27 +70,11 @@ namespace search {
             _mediator.distribute_node(std::move(node), _id);
         }
 
-        /// -------------------------------- Methods to handle PGP instances --------------------------------------- ///
         void activate_instance_request(id_type instance_idx) override {
             if (_verbose) std::osyncstream{std::cout}
                     << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", requesting reevaluation...\n";
             _mediator.activate_instance_request(instance_idx);
         }
-
-        [[nodiscard]] bool activation_requested() const override {
-            return _mediator.activation_requested();
-        }
-
-        /// Blocks execution of all workers until all of them have activated the failed instances.
-        /// The queue reevaluation is performed in a non-blocking way. Once a thread finishes reevaluating its queue,
-        /// it can start working again without waiting for the other threads to finish. It can even send nodes to other
-        /// threads while they are reevaluating their queues. The only operation that should not be allowed while
-        /// reevaluating the queue is to extract nodes, but this is guaranteed to not happen because workers can only
-        /// select nodes from their queues.
-        void activate_failed_instances() override {
-            _mediator.activate_failed_instances(_gpp.get());
-        }
-        /// -------------------------------------------------------------------------------------------------------- ///
 
     private:
         SearchMediator& _mediator; // As long as workers are owned by the mediator, this reference will be valid (because the mediator will always outlive the workers).

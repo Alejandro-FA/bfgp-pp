@@ -1,8 +1,10 @@
 #ifndef __SEARCH_SEARCH_MEDIATOR_H__
 #define __SEARCH_SEARCH_MEDIATOR_H__
 
-#include <barrier>
-#include <memory>
+#include <vector>
+#include <stop_token>
+#include <algorithm>
+#include <atomic>
 #include "../node.h"
 
 namespace search {
@@ -12,12 +14,8 @@ namespace search {
     class SearchMediator {
     public:
         /// Don't call this constructor directly, use `create` instead.
-        explicit SearchMediator(unsigned int num_threads) : _num_threads{num_threads}, _workers(num_threads),
-            _activation_finished_barrier{num_threads, [this]() {
-                std::scoped_lock lock{_instances_to_activate_mutex, _workers_reevaluating_mutex};
-                _workers_reevaluating = 0;
-                _instances_to_activate.clear();
-            }}, _active_threads(num_threads) {
+        explicit SearchMediator(unsigned int num_threads)
+            : _num_threads{num_threads}, _workers(num_threads), _active_threads(num_threads) {
             for (std::size_t i = 0; i < num_threads; ++i) _active_threads[i].exchange(true);
         }
 
@@ -36,47 +34,7 @@ namespace search {
         virtual void distribute_node(std::shared_ptr<Node> node, std::size_t from_id) = 0;
 
         /// Used so that 1 worker can request the activation of an instance in all workers.
-        void activate_instance_request(id_type instance_idx) {
-            std::scoped_lock lock{_instances_to_activate_mutex};
-            _instances_to_activate.insert(instance_idx);
-        }
-
-        /// Checks if an instance activation has been requested
-        [[nodiscard]] bool activation_requested() const {
-            std::shared_lock lock{_instances_to_activate_mutex};
-            return not _instances_to_activate.empty();
-        }
-
-        /// Returns the instances that should be activated in all workers.
-        [[nodiscard]] std::set<id_type> get_instances_to_activate() const {
-            std::shared_lock lock{_instances_to_activate_mutex};
-            return _instances_to_activate;
-        }
-
-        /// Blocks a thread until all threads have activated the failed instances.
-        void activate_failed_instances(GeneralizedPlanningProblem* gpp) {
-            {
-                std::scoped_lock lock{_workers_reevaluating_mutex};
-                _workers_reevaluating++;
-            }
-            {
-                std::shared_lock lock{_workers_reevaluating_mutex};
-                if (_workers_reevaluating == _num_threads) _workers_reevaluating_cv.notify_all();
-                else _workers_reevaluating_cv.wait(
-                    _workers_reevaluating_mutex,
-                    _stop_source.get_token(),
-                    [this]() { return _workers_reevaluating == _num_threads; }
-                );
-            }
-            // If not all workers are reevaluating (because one has found a solution), don't activate instances. They can be activated in future `solve` calls.
-            if (_stop_source.stop_requested()) return;
-            {
-                std::shared_lock lock{_instances_to_activate_mutex};
-                for (const auto& instance_idx : _instances_to_activate)
-                    gpp->activate_instance(instance_idx);
-            }
-            _activation_finished_barrier.arrive_and_wait();
-        }
+        virtual void activate_instance_request(id_type instance_idx) = 0;
 
         /// Notifies that a worker is inactive.
         void notify_inactive(std::size_t thread_id) {
@@ -105,14 +63,6 @@ namespace search {
         unsigned int _num_threads {0};
         std::vector<std::unique_ptr<ParallelWorker>> _workers;
         std::stop_source _stop_source;
-
-    private:
-        std::set<id_type> _instances_to_activate;
-        mutable std::shared_mutex _instances_to_activate_mutex;
-        unsigned int _workers_reevaluating {0};
-        mutable std::shared_mutex _workers_reevaluating_mutex;
-        mutable std::condition_variable_any _workers_reevaluating_cv;
-        std::barrier<std::function<void()>> _activation_finished_barrier;
         std::vector<std::atomic<bool>> _active_threads;
     };
 }

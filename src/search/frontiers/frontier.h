@@ -37,14 +37,13 @@ namespace search {
         /// \param f Evaluation function used to prioritize the nodes.
         /// \param gpp Generalized Planning Problem to run the programs.
         /// \param next_node_id Next id to assign to the reevaluated nodes. It will be incremented for each node.
-        void reevaluate(const std::function<vec_value_t(const Node*)>& f, GeneralizedPlanningProblem* gpp, std::atomic<id_type>& next_node_id) {
+        void reevaluate(const std::function<vec_value_t(const Node*)>& f, GeneralizedPlanningProblem* gpp) {
             auto old_open {swap_with_empty()};
             while (not old_open.empty()) {
                 auto node {old_open.top()};
                 old_open.pop();
                 node->get_program()->run(gpp); // run again the program
                 node->set_f(f(node.get()));
-                node->set_id(next_node_id++); // Node reevaluated!
                 node->get_program()->clear_program_states();
                 push(std::move(node));
             }
