@@ -32,9 +32,6 @@ namespace search {
 
         /// Override this method to use a different frontier implementation.
         [[nodiscard]] virtual std::unique_ptr<Frontier> _create_frontier() = 0;
-
-    private:
-        std::stop_source _stop_source;
     };
 }
 

@@ -88,10 +88,7 @@ namespace search {
         /// reevaluating the queue is to extract nodes, but this is guaranteed to not happen because workers can only
         /// select nodes from their queues.
         void activate_failed_instances() override {
-            _mediator.wait_to_start_activation();
-            for (const auto& instance_idx : _mediator.get_instances_to_activate())
-                _gpp->activate_instance(instance_idx);
-            _mediator.wait_to_finish_activation();
+            _mediator.activate_failed_instances(_gpp.get());
         }
         /// -------------------------------------------------------------------------------------------------------- ///
 

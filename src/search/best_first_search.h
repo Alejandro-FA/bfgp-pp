@@ -307,6 +307,7 @@ namespace search {
         void activate_and_reevaluate() {
             // Activate failed instances
             activate_failed_instances();
+            if (_stop_source.stop_requested()) return; // Only possible if multiple threads are running. See SearchMediator::activate_failed_instances for details.
             _activation_requested = false;
 
             // Reevaluate the queue

@@ -13,10 +13,11 @@ namespace search {
     public:
         /// Don't call this constructor directly, use `create` instead.
         explicit SearchMediator(unsigned int num_threads) : _num_threads{num_threads}, _workers(num_threads),
-            _start_barrier{num_threads}, _stop_barrier{num_threads, [this]() {
-                std::scoped_lock lock{_instances_to_activate_mutex};
-                _instances_to_activate.clear(); }
-            }, _active_threads(num_threads) {
+            _activation_finished_barrier{num_threads, [this]() {
+                std::scoped_lock lock{_instances_to_activate_mutex, _workers_reevaluating_mutex};
+                _workers_reevaluating = 0;
+                _instances_to_activate.clear();
+            }}, _active_threads(num_threads) {
             for (std::size_t i = 0; i < num_threads; ++i) _active_threads[i].exchange(true);
         }
 
@@ -52,14 +53,29 @@ namespace search {
             return _instances_to_activate;
         }
 
-        /// Locks a thread until all threads are ready to start reevaluation of their queuses
-        void wait_to_start_activation() {
-            _start_barrier.arrive_and_wait();
-        }
-
-        /// Locks a thread until all threads have stopped reevaluation of their queues
-        void wait_to_finish_activation() {
-            _stop_barrier.arrive_and_wait();
+        /// Blocks a thread until all threads have activated the failed instances.
+        void activate_failed_instances(GeneralizedPlanningProblem* gpp) {
+            {
+                std::scoped_lock lock{_workers_reevaluating_mutex};
+                _workers_reevaluating++;
+            }
+            {
+                std::shared_lock lock{_workers_reevaluating_mutex};
+                if (_workers_reevaluating == _num_threads) _workers_reevaluating_cv.notify_all();
+                else _workers_reevaluating_cv.wait(
+                    _workers_reevaluating_mutex,
+                    _stop_source.get_token(),
+                    [this]() { return _workers_reevaluating == _num_threads; }
+                );
+            }
+            // If not all workers are reevaluating (because one has found a solution), don't activate instances. They can be activated in future `solve` calls.
+            if (_stop_source.stop_requested()) return;
+            {
+                std::shared_lock lock{_instances_to_activate_mutex};
+                for (const auto& instance_idx : _instances_to_activate)
+                    gpp->activate_instance(instance_idx);
+            }
+            _activation_finished_barrier.arrive_and_wait();
         }
 
         /// Notifies that a worker is inactive.
@@ -88,12 +104,15 @@ namespace search {
     protected:
         unsigned int _num_threads {0};
         std::vector<std::unique_ptr<ParallelWorker>> _workers;
+        std::stop_source _stop_source;
 
     private:
         std::set<id_type> _instances_to_activate;
         mutable std::shared_mutex _instances_to_activate_mutex;
-        std::barrier<> _start_barrier;
-        std::barrier<std::function<void()>> _stop_barrier;
+        unsigned int _workers_reevaluating {0};
+        mutable std::shared_mutex _workers_reevaluating_mutex;
+        mutable std::condition_variable_any _workers_reevaluating_cv;
+        std::barrier<std::function<void()>> _activation_finished_barrier;
         std::vector<std::atomic<bool>> _active_threads;
     };
 }
