@@ -5,9 +5,9 @@
 #ifndef __SEARCH_PGP_MANAGER_H
 #define __SEARCH_PGP_MANAGER_H
 
-#include <shared_mutex>
+#include <mutex>
 #include <condition_variable>
-#include <stop_token>
+#include <atomic>
 #include "../parallel_worker.h"
 #include "../../utils/common.h"
 
@@ -27,57 +27,65 @@ namespace search {
     ///        other hand, activation requests will be sporadic.
     class PgpManager {
     public:
-        void block_activations() {
-            _activation_requested_lock.lock();
+        explicit PgpManager(unsigned int num_threads) : _num_threads{num_threads} {}
+
+        void notify_busy() {
+            std::scoped_lock lock{_threads_busy_mutex}; // Also ensures that inactive workers cannot become active while an activation is taking place.
+            assert(_threads_busy < _num_threads);
+            _threads_busy++;
         }
 
-        void allow_activations() {
-            _activation_requested_lock.unlock();
+        void notify_ready() {
+            {
+                std::scoped_lock lock{_threads_busy_mutex};
+                assert(_threads_busy > 0);
+                _threads_busy--;
+            }
+            _threads_busy_cv.notify_one();
         }
 
         /// Request the activation of an instance in all workers. If another worker is already requesting the activation
         /// of an instance, this worker will simply add the instance to the list of pending activations and return
         /// false. Otherwise, it will activate the instance in all workers and return true.
         bool activate_instance_request(id_type instance_idx, const std::vector<std::unique_ptr<ParallelWorker>>& workers) {
+            bool activation_in_progress = _activation_requested.exchange(true);
             {
                 std::scoped_lock lock{_pending_activations_mutex};
                 _pending_activations.insert(instance_idx);
             }
-            bool activation_in_process = _activation_requested.exchange(true);
-            if (activation_in_process) return false; // The first worker to request activation will handle it.
+            if (activation_in_progress) return false; // The first worker to request activation will handle it.
 
-            allow_activations(); // Unlock the shared lock to be able to gain exclusive access to the mutex.
-            { // Wait until all workers are either inactive or waiting for activation. Then activate the instances.
-                std::scoped_lock lock{_activation_requested_mutex, _pending_activations_mutex}; // The second mutex should not necessary, but just in case.
-                for (id_type idx : _pending_activations) {
-                    for (const auto& worker : workers)
-                        worker->activate_instance(idx);
-                }
-                _pending_activations.clear();
-                _activation_requested.store(false);
-                _activation_requested_cv.notify_all();
+            std::unique_lock lock{_threads_busy_mutex};
+            _threads_busy_cv.wait(lock, [this] { return _threads_busy == 1; }); // Wait until all *other* workers are inactive.
+            for (id_type idx : _pending_activations) {
+                for (const auto& worker : workers)
+                    worker->activate_instance(idx);
             }
-            block_activations(); // Lock the shared lock again.
+            _pending_activations.clear();
+            _activation_requested.store(false);
+            _activation_requested.notify_all();
             return true;
         }
 
         /// Wait until all pending activations are completed.
-        void wait_for_activation(std::stop_token st = std::stop_token{}) {
-            _activation_requested_cv.wait(
-                _activation_requested_lock, // If the predicate is false, the lock is released (i.e., allows activations).
-                std::move(st), // Stop token to interrupt the wait.
-                [this] { return not _activation_requested; }
-            ); // When the wait finishes, the lock is acquired again.
+        void wait_for_pending_activations() {
+            if (_activation_requested) {
+                notify_ready();
+                _activation_requested.wait(true);
+                notify_busy();
+            }
         }
 
     private:
+        unsigned int _num_threads;
+        std::atomic<bool> _activation_requested {false};
+
+        unsigned int _threads_busy {0};
+        mutable std::mutex _threads_busy_mutex;
+        mutable std::condition_variable _threads_busy_cv;
+
         std::set<id_type> _pending_activations;
         mutable std::mutex _pending_activations_mutex;
-
-        std::atomic<bool> _activation_requested {false};
-        mutable std::shared_mutex _activation_requested_mutex;
-        mutable std::condition_variable_any _activation_requested_cv;
-        mutable std::shared_lock<std::shared_mutex> _activation_requested_lock{_activation_requested_mutex, std::defer_lock};
     };
 }
 

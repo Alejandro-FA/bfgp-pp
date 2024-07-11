@@ -29,22 +29,22 @@ namespace search {
         }
 
         /// Check if there are pending activation requests and synchronize the activation of instances.
-        void wait_for_activation() override {
-            _pgp_manager.wait_for_activation(_stop_source.get_token());
+        void wait_for_pending_activations() override {
+            _pgp_manager.wait_for_pending_activations();
         }
 
         /// Notifies that a worker is inactive.
         void notify_inactive(std::size_t thread_id) override {
             assert(thread_id < _workers.size());
             _active_threads[thread_id].store(false);
-            _pgp_manager.allow_activations(); // Inactive workers always allow the activation of pgp instances.
+            _pgp_manager.notify_ready(); // Inactive workers always allow the activation of pgp instances.
         }
 
         /// Notifies that a worker is active.
         void notify_active(std::size_t thread_id) override {
             assert(thread_id < _workers.size());
             _active_threads[thread_id].store(true);
-            _pgp_manager.block_activations(); // Active workers block the activation of pgp instances (and only allow them when ready).
+            _pgp_manager.notify_busy(); // Active workers block the activation of pgp instances (and only allow them when ready).
         }
 
         /// Returns true if all workers are inactive.
@@ -67,7 +67,7 @@ namespace search {
         [[nodiscard]] virtual std::unique_ptr<Frontier> _create_frontier() = 0;
 
     private:
-        PgpManager _pgp_manager;
+        PgpManager _pgp_manager{_num_threads};
         std::vector<std::atomic<bool>> _active_threads;
     };
 }

@@ -184,7 +184,7 @@ namespace search {
                         // Standard A* but no chance to repeat programs so nodes are always pushed into priority queue
                         add_node_request(child);
                     }
-                    wait_for_activation();
+                    wait_for_pending_activations();
                 }
             }
             return nullptr;
@@ -206,7 +206,7 @@ namespace search {
         }
 
         /// Checks if there are pending activation requests and waits for them to complete.
-        virtual void wait_for_activation() {
+        virtual void wait_for_pending_activations() {
             // Do nothing by default. Single-threaded BFS handles activations immediately, so waiting is never needed.
         }
 

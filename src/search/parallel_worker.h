@@ -90,8 +90,8 @@ namespace search {
             BFS::set_current_evaluations(evaluations);
         }
 
-        void wait_for_activation() override {
-            _mediator.wait_for_activation();
+        void wait_for_pending_activations() override {
+            _mediator.wait_for_pending_activations();
         }
 
     private:

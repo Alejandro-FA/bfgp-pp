@@ -36,7 +36,7 @@ namespace search {
         virtual bool activate_instance_request(id_type instance_idx) = 0;
 
         /// Check if there are pending activation requests and wait until they are completed.
-        virtual void wait_for_activation() = 0;
+        virtual void wait_for_pending_activations() = 0;
 
         /// Notifies that a worker is inactive.
         virtual void notify_inactive(std::size_t thread_id) = 0;
