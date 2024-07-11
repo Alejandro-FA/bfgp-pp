@@ -63,11 +63,11 @@ namespace search {
             return nullptr;
         };
 
-        /// Returns the current evaluations of the worker. This method is thread-safe.
-        [[nodiscard]] const vec_value_t& current_evaluations() const override {
-            std::shared_lock lock{_eval_mutex};
-            return BFS::current_evaluations();
-        }
+        // /// Returns the current evaluations of the worker. This method is thread-safe.
+        // [[nodiscard]] const vec_value_t& current_evaluations() const override {
+        //     std::shared_lock lock{_eval_mutex};
+        //     return BFS::current_evaluations();
+        // }
 
     protected:
         /// When a new node is ready to be added, the worker delegates the decision of what to do to the mediator.
@@ -84,11 +84,11 @@ namespace search {
                     << "[ENGINE " << _id << "] Activation finished! Requesting reevaluation...\n";
         }
 
-        /// Sets the current evaluations of the worker. This method is thread-safe.
-        void set_current_evaluations(const vec_value_t& evaluations) override {
-            std::scoped_lock lock{_eval_mutex};
-            BFS::set_current_evaluations(evaluations);
-        }
+        // /// Sets the current evaluations of the worker. This method is thread-safe.
+        // void set_current_evaluations(const vec_value_t& evaluations) override {
+        //     std::scoped_lock lock{_eval_mutex};
+        //     BFS::set_current_evaluations(evaluations);
+        // }
 
         void wait_for_pending_activations() override {
             _mediator.wait_for_pending_activations();
