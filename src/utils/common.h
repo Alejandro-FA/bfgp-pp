@@ -49,6 +49,8 @@ typedef std::map<std::string,size_t> map_str_idx_t;
 template <typename T, typename U>
 concept SameOrConst = std::same_as<T, U> || std::same_as<T, const U>;
 
+constexpr unsigned int MAX_THREADS = 256;
+
 #define MaxValue LLONG_MAX
 #define MaxUValue ULLONG_MAX
 

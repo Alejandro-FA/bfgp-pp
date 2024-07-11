@@ -63,6 +63,12 @@ namespace search {
             return nullptr;
         };
 
+        /// Returns the current evaluations of the worker. This method is thread-safe.
+        [[nodiscard]] const vec_value_t& current_evaluations() const override {
+            std::shared_lock lock{_eval_mutex};
+            return BFS::current_evaluations();
+        }
+
     protected:
         /// When a new node is ready to be added, the worker delegates the decision of what to do to the mediator.
         /// The mediator can either add the node the worker's _open, or to send it to another worker.
@@ -72,12 +78,25 @@ namespace search {
 
         void activate_instance_request(id_type instance_idx) override {
             if (_verbose) std::osyncstream{std::cout}
-                    << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", requesting reevaluation...\n";
-            _mediator.activate_instance_request(instance_idx);
+                    << "[ENGINE " << _id << "] Failure on instance " << instance_idx + 1 << ", requesting activation...\n";
+            bool request_handled = _mediator.activate_instance_request(instance_idx);
+            if (_verbose and request_handled) std::osyncstream{std::cout}
+                    << "[ENGINE " << _id << "] Activation finished! Requesting reevaluation...\n";
+        }
+
+        /// Sets the current evaluations of the worker. This method is thread-safe.
+        void set_current_evaluations(const vec_value_t& evaluations) override {
+            std::scoped_lock lock{_eval_mutex};
+            BFS::set_current_evaluations(evaluations);
+        }
+
+        void wait_for_activation() override {
+            _mediator.wait_for_activation();
         }
 
     private:
         SearchMediator& _mediator; // As long as workers are owned by the mediator, this reference will be valid (because the mediator will always outlive the workers).
+        mutable std::shared_mutex _eval_mutex;
     };
 }
 

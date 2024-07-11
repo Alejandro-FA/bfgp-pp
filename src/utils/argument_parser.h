@@ -432,6 +432,8 @@ namespace utils {
             if(not utils::is_number(str_threads))
                 helper("Wrong input format. The input number of threads " + str_threads + " is not a number.");
             _threads = utils::str_to_num(str_threads);
+            if (_threads < 1 or _threads > MAX_THREADS)
+                helper("The number of threads must be between 1 and " + std::to_string(MAX_THREADS) + ".");
         }
 
         void parse_init_nodes_per_thread(const std::string &str_init_nodes_per_thread){
@@ -439,6 +441,8 @@ namespace utils {
             if(not utils::is_number(str_init_nodes_per_thread))
                 helper("Wrong input format. The input number of starting nodes per thread " + str_init_nodes_per_thread + " is not a number.");
             _init_nodes_per_thread = utils::str_to_num(str_init_nodes_per_thread);
+            if (_init_nodes_per_thread < 1)
+                helper("The number of starting nodes per thread must be at least 1.");
         }
 
         void parse_parallel_strategy(const std::string &str_parallel_strategy){
@@ -579,7 +583,7 @@ namespace utils {
         int _num_extra_pointers;  // number of extra pointers per argument type
         bool _progressive; // optional for synthesis and repair only (default: false)
         unsigned int _threads; // optional for synthesis and repair only (default: 1)
-        unsigned int _init_nodes_per_thread; // optional for PARALLEL synthesis and repair only (default: 10)
+        unsigned int _init_nodes_per_thread; // optional for PARALLEL synthesis and repair only (default: depends on program lines)
         std::string _parallel_strategy; // optional for synthesis and repair only (default: "independent_queues")
         std::string _output_file;  // optional for synthesis and repair only (default: "")
         bool _verbose; // optional verbose output
