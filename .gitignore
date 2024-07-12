@@ -9,3 +9,4 @@ tests/build/
 experiments/
 benchmarks-public/
 domains/aij23/validation/
+*.egg-info/
