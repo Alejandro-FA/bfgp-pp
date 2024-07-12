@@ -44,6 +44,13 @@ namespace search {
             auto possible_solution {_init_bfs->solve(copy_roots(roots, _init_bfs->get_generalized_planning_problem()))};
             if (possible_solution != nullptr) return possible_solution;
 
+            // Activate the instances that failed in the initial BFS
+            auto init_gpp {_init_bfs->get_generalized_planning_problem()};
+            if (init_gpp->is_progressive()) {
+                auto active_instances {init_gpp->get_instance_idxs(true)};
+                for (auto instance_idx : active_instances) _mediator->activate_instance_request(instance_idx);
+            }
+
             // Distribute the initial nodes among the threads
             const auto& workers {_mediator->get_workers()};
             unsigned int thread_idx = 0;

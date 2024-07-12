@@ -56,7 +56,7 @@ namespace search {
             if (activation_in_progress) return false; // The first worker to request activation will handle it.
 
             std::unique_lock lock{_threads_busy_mutex};
-            _threads_busy_cv.wait(lock, [this] { return _threads_busy == 1; }); // Wait until all *other* workers are inactive.
+            _threads_busy_cv.wait(lock, [this] { return _threads_busy <= 1; }); // Wait until all (other) workers are inactive.
             for (id_type idx : _pending_activations) {
                 for (const auto& worker : workers)
                     worker->activate_instance(idx);

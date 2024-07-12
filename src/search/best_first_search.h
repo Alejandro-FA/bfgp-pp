@@ -79,9 +79,8 @@ namespace search {
         /// Parallel BFS implementations should protect calls to this method with a mutex or other synchronization
         /// mechanisms for thread-safety.
         virtual void activate_instance(id_type instance_idx) {
-            assert(not _gpp->is_instance_active(instance_idx));
             _gpp->activate_instance(instance_idx);
-            _reevaluation_required = true;
+            if (not _open->empty()) _reevaluation_required = true;
         }
 
         /// Careful! This method is public (i.e., it could be called from multiple threads) and not thread-safe.
