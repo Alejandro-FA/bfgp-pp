@@ -130,7 +130,7 @@ namespace search {
             while (!_open->empty() and !_stop_source.stop_requested() and _open->size() < _queue_size_limit) {
                 auto current {select_node()};
 //std::cout << "[INFO] Selecting node:\n" << current->to_string() << "\n";
-                set_current_evaluations(current->f());
+                _current_evaluations = current->f();
 //std::cout << "[INFO] Total new expansions = " << children.size() << "\n";
                 if (current_evaluations() < _best_evaluations) {
                     _best_evaluations = current_evaluations();
@@ -207,13 +207,6 @@ namespace search {
         /// Checks if there are pending activation requests and waits for them to complete.
         virtual void wait_for_pending_activations() {
             // Do nothing by default. Single-threaded BFS handles activations immediately, so waiting is never needed.
-        }
-
-        /// Sets the current evaluations. If the current evaluations are meant be read by multiple threads, parallel
-        /// algorithms should protect calls to this method with a mutex or other synchronization mechanisms for
-        /// thread-safety.
-        virtual void set_current_evaluations(const vec_value_t& evaluations) {
-            _current_evaluations = evaluations;
         }
 
     private:
